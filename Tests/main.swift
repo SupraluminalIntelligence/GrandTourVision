@@ -291,4 +291,50 @@ do {
     check(abs(pts[7].x - z[7 * 64 + 5] * 0.88) < 1e-6 && abs(pts[7].y - z[7 * 64] * 0.88) < 1e-6 && abs(pts[7].z - z[7 * 64 + 9] * 0.88) < 1e-6,
           "a static view shows exactly the chosen principal directions on X/Y/Z")
 }
+
+// Window frame: tilting by hand (manual tour), touring from wherever you are, slices with depth.
+func orthonormal(_ f: WindowFrame) -> Bool {
+    for a in f.vectors.indices { for b in f.vectors.indices {
+        let d = zip(f.vectors[a], f.vectors[b]).reduce(0) { $0 + $1.0 * $1.1 }
+        if abs(d - (a == b ? 1 : 0)) > 1e-9 { return false }
+    } }
+    return true
+}
+do {
+    let planes8 = TorusTour.speeds(8)
+    check(WindowFrame.identity(8).toured(t: 0, planes: planes8) == .identity(8), "tour from a frame starts exactly there")
+    let fromIdentity = WindowFrame.identity(8).toured(t: 3.7, planes: planes8)
+    let reference = TorusTour.basis(8, t: 3.7, planes: planes8)
+    check(zip(fromIdentity.vectors.prefix(3), reference).allSatisfy { zip($0, $1).allSatisfy { abs($0 - $1) < 1e-12 } } && orthonormal(fromIdentity),
+          "touring from the identity frame is the browser tour (and keeps the hidden direction orthonormal)")
+
+    let up4 = WindowFrame.identity(8).tilted(toward: 3, by: SIMD3(0, .pi / 2, 0))
+    check(abs(up4.vectors[1][3] - 1) < 1e-9 && abs(up4.visibility(3) - 1) < 1e-9 && up4.visibility(1) < 1e-9,
+          "pulling PC4 a quarter turn onto Y shows PC4 and hides PC2")
+    check(orthonormal(up4) && abs(up4.vectors[3][3]) < 1e-9, "after the tilt, the hidden depth direction moved off the newly visible PC4")
+    check(up4.dominant(axis: 1).q == 3, "Y is now dominated by PC4")
+    check(WindowFrame.identity(8).tilted(toward: 0, by: SIMD3(0.3, 0.2, 0.1)) == .identity(8), "tilting toward a fully visible direction changes nothing")
+    var wander = WindowFrame.identity(16)
+    for k in 0..<200 { wander = wander.tilted(toward: (k * 7) % 16, by: SIMD3(0.11, -0.07, 0.05)) }
+    check(orthonormal(wander), "hundreds of hand tilts keep the window orthonormal")
+    let partial = WindowFrame.identity(8).tilted(toward: 5, by: SIMD3(0.4, 0, 0))
+    check(abs(partial.visibility(5) - sin(0.4)) < 1e-9, "a partial tilt shows the expected share of the direction")
+}
+do {
+    let cloud = clouds[3], dims = viewDims(axes: [0, 1, 2], toured: 8, C: 64)
+    let frame = WindowFrame.identity(8).tilted(toward: 4, by: SIMD3(0.3, -0.5, 0.2))
+    var sample = WindowSample()
+    cloud.project(frame, dims: dims, into: &sample)
+    let p = 17, b = sample.base[p], h = sample.hidden[p], r = sample.residual[p]
+    let n2 = dims.reduce(Float(0)) { $0 + cloud.z[p * 64 + $1] * cloud.z[p * 64 + $1] }
+    check(abs(simd_length_squared(b) + h * h + r * r - n2) < 1e-3 * max(1, n2), "visible + depth + residual parts add up to the token's full length")
+    check(abs(sliceDistance(residual: r, hidden: h, depth: h) - r) < 1e-6, "a slice slid to a token's depth is only its residual away")
+    var view = WindowView(center: .zero, zoom: 2, fit: WindowView.framing(sample.base), shape: .sphere)
+    let before = view.local(b)
+    view.pan(byWindowUnits: SIMD3(0.1, -0.2, 0.05))
+    check(simd_length(view.local(b) - before - SIMD3(0.1, -0.2, 0.05)) < 1e-5, "panning moves the data with your hand")
+    view.zoom = 1; view.center = .zero
+    let inside = sample.base.filter { view.reach(view.local($0)) <= 1.0001 }.count
+    check(inside >= Int(0.95 * Double(sample.base.count)), "framing fits 95% of tokens inside the window at zoom 1")
+}
 print("All checks passed")

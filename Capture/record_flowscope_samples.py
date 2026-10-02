@@ -5,7 +5,7 @@
 Writes Samples/flowscope/{healthy,no-residual}-12-layers.jsonl: one tour frame every 200 steps, from step 0
 (rank collapse is visible at initialization) to step 1000. Needs ../flowscope (and its data/input.txt).
 """
-import importlib.util, os, pathlib
+import importlib.util, json, os, pathlib
 
 import torch
 from flowscope import FlowScope
@@ -37,4 +37,7 @@ for name, flags in (("healthy", []), ("no-residual", ["--no-residual"])):
         opt.zero_grad(set_to_none=True)
         loss.backward()
         opt.step()
+    # character-level run: store the vocabulary so the headset can show each token as text
+    frames = [json.loads(line) for line in out.read_text().splitlines()]
+    out.write_text("".join(json.dumps(dict(f, vocab="".join(chars))) + "\n" for f in frames))
     print(f"{out.relative_to(ROOT)}: loss {loss.item():.3f}, {os.path.getsize(out) // 1024} KB")

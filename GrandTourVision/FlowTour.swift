@@ -20,6 +20,7 @@ struct FlowFrame: Codable, Equatable {
     let layers: [Layer]
     let tokens: [Int]?
     var label: String?
+    var vocab: String?  // token id -> character, when the run is character-level (lets the headset show text)
 
     static let maxValues = 4_194_304
 

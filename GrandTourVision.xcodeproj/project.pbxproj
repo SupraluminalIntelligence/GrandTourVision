@@ -1,64 +1,396 @@
 // !$*UTF8*$!
-{archiveVersion = 1; classes = {}; objectVersion = 56; objects = {
-000000000000000000000070 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FlowTour.swift"; sourceTree = "<group>";};
-000000000000000000000071 = {isa = PBXBuildFile; fileRef = 000000000000000000000070;};
-000000000000000000000072 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GalleryModel.swift"; sourceTree = "<group>";};
-000000000000000000000073 = {isa = PBXBuildFile; fileRef = 000000000000000000000072;};
-000000000000000000000074 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GalleryView.swift"; sourceTree = "<group>";};
-000000000000000000000075 = {isa = PBXBuildFile; fileRef = 000000000000000000000074;};
-000000000000000000000076 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GalleryControlsView.swift"; sourceTree = "<group>";};
-000000000000000000000077 = {isa = PBXBuildFile; fileRef = 000000000000000000000076;};
-000000000000000000000078 = {isa = PBXFileReference; lastKnownFileType = text; path = "../Samples/flowscope/healthy-12-layers.jsonl"; sourceTree = "<group>";};
-000000000000000000000079 = {isa = PBXBuildFile; fileRef = 000000000000000000000078;};
-00000000000000000000007A = {isa = PBXFileReference; lastKnownFileType = text; path = "../Samples/flowscope/no-residual-12-layers.jsonl"; sourceTree = "<group>";};
-00000000000000000000007B = {isa = PBXBuildFile; fileRef = 00000000000000000000007A;};
-00000000000000000000007C = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>";};
-000000000000000000000064 = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../Samples/room-demo-trace.json"; sourceTree = "<group>";};
-000000000000000000000065 = {isa = PBXBuildFile; fileRef = 000000000000000000000064;};
-000000000000000000000060 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenePlacement.swift; sourceTree = "<group>";};
-000000000000000000000061 = {isa = PBXBuildFile; fileRef = 000000000000000000000060;};
-000000000000000000000062 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomControlsView.swift; sourceTree = "<group>";};
-000000000000000000000063 = {isa = PBXBuildFile; fileRef = 000000000000000000000062;};
-00000000000000000000005A = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../Samples/public-sorting-trace.json"; sourceTree = "<group>";};
-00000000000000000000005B = {isa = PBXBuildFile; fileRef = 00000000000000000000005A;};
-00000000000000000000003C = {isa = PBXGroup; children = (000000000000000000000045); path = UITests; sourceTree = "<group>";};
-000000000000000000000045 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationSmokeTests.swift; sourceTree = "<group>";};
-000000000000000000000046 = {isa = PBXBuildFile; fileRef = 000000000000000000000045;};
-00000000000000000000003E = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GrandTourVisionUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR;};
-00000000000000000000003D = {isa = PBXNativeTarget; buildConfigurationList = 000000000000000000000050; buildPhases = (00000000000000000000003F, 000000000000000000000040, 000000000000000000000041); buildRules = (); dependencies = (000000000000000000000043); name = GrandTourVisionUITests; productName = GrandTourVisionUITests; productReference = 00000000000000000000003E; productType = "com.apple.product-type.bundle.ui-testing";};
-00000000000000000000003F = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000046); runOnlyForDeploymentPostprocessing = 0;};
-000000000000000000000040 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
-000000000000000000000041 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
-000000000000000000000043 = {isa = PBXTargetDependency; target = 000000000000000000000005; targetProxy = 000000000000000000000044;};
-000000000000000000000044 = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000001; proxyType = 1; remoteGlobalIDString = 000000000000000000000005; remoteInfo = GrandTourVision;};
-000000000000000000000050 = {isa = XCConfigurationList; buildConfigurations = (000000000000000000000051, 000000000000000000000052); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
-000000000000000000000051 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = local.george.GrandTourVisionUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "xros xrsimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 7; TEST_TARGET_NAME = GrandTourVision; XROS_DEPLOYMENT_TARGET = 2.0;}; name = Debug;};
-000000000000000000000052 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = local.george.GrandTourVisionUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "xros xrsimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 7; TEST_TARGET_NAME = GrandTourVision; XROS_DEPLOYMENT_TARGET = 2.0;}; name = Release;};
-00000000000000000000000F = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationTrace.swift; sourceTree = "<group>";};
-000000000000000000000019 = {isa = PBXBuildFile; fileRef = 00000000000000000000000F;};
-00000000000000000000000A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrandTourApp.swift; sourceTree = "<group>";};
-000000000000000000000014 = {isa = PBXBuildFile; fileRef = 00000000000000000000000A;};
-00000000000000000000000B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection.swift; sourceTree = "<group>";};
-000000000000000000000015 = {isa = PBXBuildFile; fileRef = 00000000000000000000000B;};
-00000000000000000000000C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourModel.swift; sourceTree = "<group>";};
-000000000000000000000016 = {isa = PBXBuildFile; fileRef = 00000000000000000000000C;};
-00000000000000000000000D = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsView.swift; sourceTree = "<group>";};
-000000000000000000000017 = {isa = PBXBuildFile; fileRef = 00000000000000000000000D;};
-00000000000000000000000E = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlotView.swift; sourceTree = "<group>";};
-000000000000000000000018 = {isa = PBXBuildFile; fileRef = 00000000000000000000000E;};
-000000000000000000000001 = {isa = PBXProject; attributes = {LastUpgradeCheck = 2700;}; buildConfigurationList = 000000000000000000000028; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = 000000000000000000000002; productRefGroup = 000000000000000000000004; projectDirPath = ""; projectRoot = ""; targets = (000000000000000000000005, 00000000000000000000003D);};
-000000000000000000000002 = {isa = PBXGroup; children = (000000000000000000000003, 00000000000000000000003C, 000000000000000000000004); sourceTree = "<group>";};
-000000000000000000000003 = {isa = PBXGroup; children = (000000000000000000000070, 000000000000000000000072, 000000000000000000000074, 000000000000000000000076, 000000000000000000000078, 00000000000000000000007A, 00000000000000000000007C, 000000000000000000000064, 000000000000000000000060, 000000000000000000000062, 00000000000000000000005A, 00000000000000000000000F, 00000000000000000000000A, 00000000000000000000000B, 00000000000000000000000C, 00000000000000000000000D, 00000000000000000000000E); path = GrandTourVision; sourceTree = "<group>";};
-000000000000000000000004 = {isa = PBXGroup; children = (000000000000000000000006, 00000000000000000000003E); name = Products; sourceTree = "<group>";};
-000000000000000000000006 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GrandTourVision.app; sourceTree = BUILT_PRODUCTS_DIR;};
-000000000000000000000005 = {isa = PBXNativeTarget; buildConfigurationList = 000000000000000000000029; buildPhases = (000000000000000000000007, 000000000000000000000008, 000000000000000000000009); buildRules = (); dependencies = (); name = GrandTourVision; productName = GrandTourVision; productReference = 000000000000000000000006; productType = "com.apple.product-type.application";};
-000000000000000000000007 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000071, 000000000000000000000073, 000000000000000000000075, 000000000000000000000077, 000000000000000000000061, 000000000000000000000063, 000000000000000000000019, 000000000000000000000014, 000000000000000000000015, 000000000000000000000016, 000000000000000000000017, 000000000000000000000018); runOnlyForDeploymentPostprocessing = 0;};
-000000000000000000000008 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
-000000000000000000000009 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000079, 00000000000000000000007B, 000000000000000000000065, 00000000000000000000005B); runOnlyForDeploymentPostprocessing = 0;};
-000000000000000000000028 = {isa = XCConfigurationList; buildConfigurations = (00000000000000000000002A, 00000000000000000000002B); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
-000000000000000000000029 = {isa = XCConfigurationList; buildConfigurations = (00000000000000000000002C, 00000000000000000000002D); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
-00000000000000000000002A = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SDKROOT = xros;}; name = Debug;};
-00000000000000000000002B = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SDKROOT = xros;}; name = Release;};
-00000000000000000000002C = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; INFOPLIST_FILE = GrandTourVision/Info.plist; INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connects to a FlowScope training run on your Mac to show it live."; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_CFBundleDisplayName = "Grand Tour"; MARKETING_VERSION = 0.1; PRODUCT_BUNDLE_IDENTIFIER = local.george.GrandTourVision; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "xros xrsimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 7; XROS_DEPLOYMENT_TARGET = 2.0; SWIFT_OPTIMIZATION_LEVEL = "-Onone";}; name = Debug;};
-00000000000000000000002D = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; INFOPLIST_FILE = GrandTourVision/Info.plist; INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connects to a FlowScope training run on your Mac to show it live."; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_CFBundleDisplayName = "Grand Tour"; MARKETING_VERSION = 0.1; PRODUCT_BUNDLE_IDENTIFIER = local.george.GrandTourVision; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "xros xrsimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 7; XROS_DEPLOYMENT_TARGET = 2.0; SWIFT_OPTIMIZATION_LEVEL = "-O";}; name = Release;};
-}; rootObject = 000000000000000000000001;}
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+000000000000000000000083 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoScript.swift; sourceTree = "<group>";};
+000000000000000000000084 = {isa = PBXBuildFile; fileRef = 000000000000000000000083;};
+
+/* Begin PBXBuildFile section */
+		000000000000000000000014 /* GrandTourApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000A /* GrandTourApp.swift */; };
+		000000000000000000000015 /* Projection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000B /* Projection.swift */; };
+		000000000000000000000016 /* TourModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000C /* TourModel.swift */; };
+		000000000000000000000017 /* ControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000D /* ControlsView.swift */; };
+		000000000000000000000018 /* PlotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000E /* PlotView.swift */; };
+		000000000000000000000019 /* ActivationTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000F /* ActivationTrace.swift */; };
+		000000000000000000000046 /* ActivationSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000045 /* ActivationSmokeTests.swift */; };
+		00000000000000000000005B /* ../Samples/public-sorting-trace.json in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000005A /* ../Samples/public-sorting-trace.json */; };
+		000000000000000000000061 /* ScenePlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000060 /* ScenePlacement.swift */; };
+		000000000000000000000063 /* RoomControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000062 /* RoomControlsView.swift */; };
+		000000000000000000000065 /* ../Samples/room-demo-trace.json in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000064 /* ../Samples/room-demo-trace.json */; };
+		000000000000000000000071 /* FlowTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000070 /* FlowTour.swift */; };
+		000000000000000000000073 /* GalleryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000072 /* GalleryModel.swift */; };
+		000000000000000000000075 /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000074 /* GalleryView.swift */; };
+		000000000000000000000077 /* GalleryControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000076 /* GalleryControlsView.swift */; };
+		000000000000000000000079 /* ../Samples/flowscope/healthy-12-layers.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000078 /* ../Samples/flowscope/healthy-12-layers.jsonl */; };
+		00000000000000000000007B /* ../Samples/flowscope/no-residual-12-layers.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000007A /* ../Samples/flowscope/no-residual-12-layers.jsonl */; };
+		00000000000000000000007E /* ViewWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000007D /* ViewWindow.swift */; };
+		000000000000000000000080 /* CloudNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000007F /* CloudNode.swift */; };
+		000000000000000000000082 /* WindowDecor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000081 /* WindowDecor.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		000000000000000000000044 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000000000005;
+			remoteInfo = GrandTourVision;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		000000000000000000000006 /* GrandTourVision.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GrandTourVision.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		00000000000000000000000A /* GrandTourApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrandTourApp.swift; sourceTree = "<group>"; };
+		00000000000000000000000B /* Projection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection.swift; sourceTree = "<group>"; };
+		00000000000000000000000C /* TourModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourModel.swift; sourceTree = "<group>"; };
+		00000000000000000000000D /* ControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsView.swift; sourceTree = "<group>"; };
+		00000000000000000000000E /* PlotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlotView.swift; sourceTree = "<group>"; };
+		00000000000000000000000F /* ActivationTrace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationTrace.swift; sourceTree = "<group>"; };
+		00000000000000000000003E /* GrandTourVisionUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GrandTourVisionUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000045 /* ActivationSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationSmokeTests.swift; sourceTree = "<group>"; };
+		00000000000000000000005A /* ../Samples/public-sorting-trace.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../Samples/public-sorting-trace.json"; sourceTree = "<group>"; };
+		000000000000000000000060 /* ScenePlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenePlacement.swift; sourceTree = "<group>"; };
+		000000000000000000000062 /* RoomControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomControlsView.swift; sourceTree = "<group>"; };
+		000000000000000000000064 /* ../Samples/room-demo-trace.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../Samples/room-demo-trace.json"; sourceTree = "<group>"; };
+		000000000000000000000070 /* FlowTour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowTour.swift; sourceTree = "<group>"; };
+		000000000000000000000072 /* GalleryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryModel.swift; sourceTree = "<group>"; };
+		000000000000000000000074 /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
+		000000000000000000000076 /* GalleryControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryControlsView.swift; sourceTree = "<group>"; };
+		000000000000000000000078 /* ../Samples/flowscope/healthy-12-layers.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "../Samples/flowscope/healthy-12-layers.jsonl"; sourceTree = "<group>"; };
+		00000000000000000000007A /* ../Samples/flowscope/no-residual-12-layers.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "../Samples/flowscope/no-residual-12-layers.jsonl"; sourceTree = "<group>"; };
+		00000000000000000000007C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		00000000000000000000007D /* ViewWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewWindow.swift; sourceTree = "<group>"; };
+		00000000000000000000007F /* CloudNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudNode.swift; sourceTree = "<group>"; };
+		000000000000000000000081 /* WindowDecor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDecor.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		000000000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		000000000000000000000040 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		000000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000003 /* GrandTourVision */,
+				00000000000000000000003C /* UITests */,
+				000000000000000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		000000000000000000000003 /* GrandTourVision */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000083 /* DemoScript.swift */,
+				00000000000000000000007D /* ViewWindow.swift */,
+				00000000000000000000007F /* CloudNode.swift */,
+				000000000000000000000081 /* WindowDecor.swift */,
+				000000000000000000000070 /* FlowTour.swift */,
+				000000000000000000000072 /* GalleryModel.swift */,
+				000000000000000000000074 /* GalleryView.swift */,
+				000000000000000000000076 /* GalleryControlsView.swift */,
+				000000000000000000000078 /* ../Samples/flowscope/healthy-12-layers.jsonl */,
+				00000000000000000000007A /* ../Samples/flowscope/no-residual-12-layers.jsonl */,
+				00000000000000000000007C /* Info.plist */,
+				000000000000000000000064 /* ../Samples/room-demo-trace.json */,
+				000000000000000000000060 /* ScenePlacement.swift */,
+				000000000000000000000062 /* RoomControlsView.swift */,
+				00000000000000000000005A /* ../Samples/public-sorting-trace.json */,
+				00000000000000000000000F /* ActivationTrace.swift */,
+				00000000000000000000000A /* GrandTourApp.swift */,
+				00000000000000000000000B /* Projection.swift */,
+				00000000000000000000000C /* TourModel.swift */,
+				00000000000000000000000D /* ControlsView.swift */,
+				00000000000000000000000E /* PlotView.swift */,
+			);
+			path = GrandTourVision;
+			sourceTree = "<group>";
+		};
+		000000000000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000006 /* GrandTourVision.app */,
+				00000000000000000000003E /* GrandTourVisionUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		00000000000000000000003C /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000045 /* ActivationSmokeTests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		000000000000000000000005 /* GrandTourVision */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000000029 /* Build configuration list for PBXNativeTarget "GrandTourVision" */;
+			buildPhases = (
+				000000000000000000000007 /* Sources */,
+				000000000000000000000008 /* Frameworks */,
+				000000000000000000000009 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GrandTourVision;
+			productName = GrandTourVision;
+			productReference = 000000000000000000000006 /* GrandTourVision.app */;
+			productType = "com.apple.product-type.application";
+		};
+		00000000000000000000003D /* GrandTourVisionUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000000050 /* Build configuration list for PBXNativeTarget "GrandTourVisionUITests" */;
+			buildPhases = (
+				00000000000000000000003F /* Sources */,
+				000000000000000000000040 /* Frameworks */,
+				000000000000000000000041 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				000000000000000000000043 /* PBXTargetDependency */,
+			);
+			name = GrandTourVisionUITests;
+			productName = GrandTourVisionUITests;
+			productReference = 00000000000000000000003E /* GrandTourVisionUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		000000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 2700;
+			};
+			buildConfigurationList = 000000000000000000000028 /* Build configuration list for PBXProject "GrandTourVision" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 000000000000000000000002;
+			productRefGroup = 000000000000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				000000000000000000000005 /* GrandTourVision */,
+				00000000000000000000003D /* GrandTourVisionUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		000000000000000000000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000079 /* ../Samples/flowscope/healthy-12-layers.jsonl in Resources */,
+				00000000000000000000007B /* ../Samples/flowscope/no-residual-12-layers.jsonl in Resources */,
+				000000000000000000000065 /* ../Samples/room-demo-trace.json in Resources */,
+				00000000000000000000005B /* ../Samples/public-sorting-trace.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		000000000000000000000041 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		000000000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000084 /* DemoScript.swift in Sources */,
+				00000000000000000000007E /* ViewWindow.swift in Sources */,
+				000000000000000000000080 /* CloudNode.swift in Sources */,
+				000000000000000000000082 /* WindowDecor.swift in Sources */,
+				000000000000000000000071 /* FlowTour.swift in Sources */,
+				000000000000000000000073 /* GalleryModel.swift in Sources */,
+				000000000000000000000075 /* GalleryView.swift in Sources */,
+				000000000000000000000077 /* GalleryControlsView.swift in Sources */,
+				000000000000000000000061 /* ScenePlacement.swift in Sources */,
+				000000000000000000000063 /* RoomControlsView.swift in Sources */,
+				000000000000000000000019 /* ActivationTrace.swift in Sources */,
+				000000000000000000000014 /* GrandTourApp.swift in Sources */,
+				000000000000000000000015 /* Projection.swift in Sources */,
+				000000000000000000000016 /* TourModel.swift in Sources */,
+				000000000000000000000017 /* ControlsView.swift in Sources */,
+				000000000000000000000018 /* PlotView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		00000000000000000000003F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000046 /* ActivationSmokeTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		000000000000000000000043 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000000000005 /* GrandTourVision */;
+			targetProxy = 000000000000000000000044 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		00000000000000000000002A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				SDKROOT = xros;
+			};
+			name = Debug;
+		};
+		00000000000000000000002B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				SDKROOT = xros;
+			};
+			name = Release;
+		};
+		00000000000000000000002C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9FW88UDEHH;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GrandTourVision/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Grand Tour";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connects to a FlowScope training run on your Mac to show it live.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = local.george.GrandTourVision;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 7;
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Debug;
+		};
+		00000000000000000000002D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9FW88UDEHH;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GrandTourVision/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Grand Tour";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connects to a FlowScope training run on your Mac to show it live.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = local.george.GrandTourVision;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 7;
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Release;
+		};
+		000000000000000000000051 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = local.george.GrandTourVisionUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 7;
+				TEST_TARGET_NAME = GrandTourVision;
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Debug;
+		};
+		000000000000000000000052 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = local.george.GrandTourVisionUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 7;
+				TEST_TARGET_NAME = GrandTourVision;
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		000000000000000000000028 /* Build configuration list for PBXProject "GrandTourVision" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00000000000000000000002A /* Debug */,
+				00000000000000000000002B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		000000000000000000000029 /* Build configuration list for PBXNativeTarget "GrandTourVision" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00000000000000000000002C /* Debug */,
+				00000000000000000000002D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		000000000000000000000050 /* Build configuration list for PBXNativeTarget "GrandTourVisionUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000000000051 /* Debug */,
+				000000000000000000000052 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 000000000000000000000001 /* Project object */;
+}

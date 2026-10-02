@@ -67,28 +67,48 @@ final class ImmersivePlotTests: XCTestCase {
         XCTAssertTrue(status.label.contains("6 snapshots"), status.label)
         app.buttons["enter-gallery"].tap()
         XCTAssertTrue(app.buttons["Exit gallery"].waitForExistence(timeout: 30))
-        captureStage("10-gallery-still", seconds: 10)
+        captureStage("20-gallery", seconds: 8)
+
+        // step inside block 3: a fixed window; the data is framed so nearly every token fits
         app.buttons["focus-block"].tap(); app.buttons["b3"].tap()
-        captureStage("11-gallery-inside-b3", seconds: 10)
-        app.buttons["Larger"].tap(); app.buttons["Larger"].tap()
-        captureStage("12-gallery-inside-b3-zoomed", seconds: 8)
-        app.buttons["Recenter"].tap()
-        app.buttons["axis-0-next"].tap()  // PC2 and PC3 are on Y and Z, so X skips to PC4
-        XCTAssertEqual(app.staticTexts["axis-0-label"].label, "X = PC4")
-        captureStage("13-gallery-inside-b3-pc4", seconds: 8)
+        let inside = app.staticTexts["inside-count"]
+        XCTAssertTrue(inside.waitForExistence(timeout: 10))
+        captureStage("21-window-b3", seconds: 8)
+        XCTAssertGreaterThan(count(inside), 230, inside.label)
+
+        // zoom the data (not the window): tokens leave through the boundary
+        app.buttons["Zoom in"].tap(); app.buttons["Zoom in"].tap()
+        XCTAssertEqual(app.staticTexts["zoom-label"].label, "2.0×")
+        captureStage("22-window-zoomed", seconds: 6)
+        XCTAssertLessThan(count(inside), 230, inside.label)
+        app.buttons["Re-center data"].tap()
+
+        // tilt Y a quarter turn toward PC4: PC4 swings into view and the shape changes
+        for _ in 0..<6 { app.buttons["tilt-y"].tap() }
+        XCTAssertTrue(app.staticTexts["axis-summary"].label.contains("Y ≈ PC4"), app.staticTexts["axis-summary"].label)
+        captureStage("23-window-tilted-pc4", seconds: 8)
+
+        // slice: only tokens near this 3D slice of the 64-D space
+        app.buttons["Slice"].tap()
+        captureStage("24-window-slice", seconds: 6)
+        XCTAssertLessThan(count(inside), 200, inside.label)
+        app.buttons["Projection"].tap()
+
         app.buttons["tour-toggle"].tap()
         XCTAssertTrue(app.buttons["Stop tour"].waitForExistence(timeout: 5))
-        captureStage("14-gallery-inside-b3-touring", seconds: 8)
+        captureStage("25-window-touring", seconds: 8)
+        app.buttons["tour-toggle"].tap()
+
         app.buttons["Back to gallery"].tap()
-        app.buttons["1000"].tap()
+        app.buttons["Exit gallery"].tap()
+        XCTAssertTrue(app.buttons["enter-gallery"].waitForExistence(timeout: 20))
+        // back home: switch to the healthy run
         let healthy = app.buttons["Healthy · 12 blocks (recorded)"]
         XCTAssertTrue(healthy.waitForExistence(timeout: 10))
         healthy.tap()
-        XCTAssertTrue(status.label.contains("6 snapshots"), status.label)
-        captureStage("15-gallery-healthy", seconds: 8)
-        app.buttons["Exit gallery"].tap()
-        XCTAssertTrue(app.buttons["enter-gallery"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["gallery-status"].label.contains("6 snapshots"))
     }
+    private func count(_ label: XCUIElement) -> Int { Int(label.label.split(separator: " ").first ?? "") ?? -1 }
     @MainActor private func openClassic() -> XCUIApplication {
         let app = XCUIApplication(); app.launch()
         XCTAssertTrue(app.buttons["open-classic"].waitForExistence(timeout: 30))

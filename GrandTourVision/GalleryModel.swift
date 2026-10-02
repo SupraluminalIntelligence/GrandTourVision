@@ -23,15 +23,26 @@ final class GalleryModel {
     private(set) var planes = TorusTour.speeds(8)
     private(set) var status = "Choose a recording or connect to FlowScope."
     private(set) var axes = [0, 1, 2]  // principal directions shown on X/Y/Z when the tour isn't running
-    var playing = false  // static by default: you explore; the tour starts only when asked
+    private(set) var playing = false  // still by default: you explore; the tour moves only when asked
     var speed = 1.0
     var colorByToken = false
-    var focused: Int? { didSet { if focused != oldValue { resetPlacement() } } }
-    // Your placement of the focused block (pinch, drag, two-hand rotate), on top of its default room-scale pose.
-    var focusOffset = SIMD3<Float>.zero
-    var focusScale: Float = 1
-    var focusRotation = simd_quatf(angle: 0, axis: [0, 1, 0])
+    var focused: Int? { didSet { if focused != oldValue { pinned = nil; recenter() } } }
     var galleryOpen = false
+
+    // The window you step into stays put in the room; you move the data through it.
+    // Orientation inside the high-dimensional space (nil = looking straight along the chosen axes):
+    private(set) var windowFrame: WindowFrame?
+    var view = WindowView()            // where the data sits in the window: center, zoom, framing, shape
+    var windowSize: Float = 1          // physical size: 2.4 m across at 1
+    var showHints = true               // faint dots on the boundary for data just outside
+    var sliceMode = false              // show only tokens near the 3D slice (they enter and leave as you move)
+    var sliceThickness: Float = 0.8    // x the median distance from the slice
+    var depth: Float = 0               // slide the slice along the hidden direction, in standard deviations
+    var handlePage = 0                 // which 8 principal directions get handles: PC1-8, PC9-16, ...
+    var pinned: Int?                   // the token you tapped
+    private(set) var tourTick = 0      // nudges the panel while the tour runs (tour time itself is unobserved)
+    var insideCount = 0                // tokens currently drawn inside the window (set by the scene)
+    var caption: String?               // large subtitle in the space (used by the recorded demo)
     var liveAddress = "127.0.0.1:8765"
     var error: String?
     @ObservationIgnored var time = 0.0
@@ -68,13 +79,18 @@ final class GalleryModel {
         if focused.map({ $0 >= clouds.count }) ?? false { focused = nil }
         if axes.contains(where: { $0 >= f.C }) { axes = [0, 1, 2] }
         setToured(toured > f.C ? min(f.k, f.C) : toured)
+        if let p = pinned, p >= f.N { pinned = nil }
+        refitWindow()
     }
 
     /// The principal directions in play: chosen axes first, then the rest of the toured set.
     var dims: [Int] { viewDims(axes: axes, toured: toured, C: frame?.C ?? 64) }
 
     func setToured(_ n: Int) {
-        toured = max(3, min(n, frame?.C ?? n))
+        let next = max(3, min(n, frame?.C ?? n))
+        if next != toured { windowFrame = nil; time = 0; playing = false }
+        toured = next
+        handlePage = min(handlePage, (dims.count - 1) / 8)
         refit()
     }
 
@@ -84,8 +100,8 @@ final class GalleryModel {
         var next = axes
         if let other = next.firstIndex(of: direction) { next.swapAt(axis, other) } else { next[axis] = direction }
         axes = next
-        playing = false; time = 0
-        refit()
+        playing = false; time = 0; windowFrame = nil
+        refit(); refitWindow()
     }
 
     /// Step an axis to the next principal direction not already shown on another axis.
@@ -104,14 +120,64 @@ final class GalleryModel {
 
     func percentSeen(_ i: Int) -> Int { clouds[i].percentSeen(dims: dims) }
 
-    /// Back to the chosen axes (tour time 0), paused.
-    func resetView() { time = 0; playing = false }
+    /// Back to looking straight along the chosen axes, paused.
+    func resetView() { time = 0; playing = false; windowFrame = nil; refitWindow() }
 
-    func resetPlacement() { focusOffset = .zero; focusScale = 1; focusRotation = simd_quatf(angle: 0, axis: [0, 1, 0]) }
+    /// Where the window points right now: your hand-set frame, carried along by the tour if it's running.
+    func currentFrame() -> WindowFrame {
+        let n = dims.count
+        let start = windowFrame.flatMap { $0.n == n ? $0 : nil } ?? .identity(n)
+        return time == 0 ? start : start.toured(t: time, planes: planes)
+    }
 
-    func advance(_ dt: Double) { if playing { time += min(max(dt, 0), 0.1) * speed } }
+    func basis() -> [[Double]] { currentFrame().vectors }
 
-    func basis() -> [[Double]] { TorusTour.basis(dims.count, t: time, planes: planes) }
+    /// Stopping the tour leaves the window where it is, so you can keep exploring from there by hand.
+    func setPlaying(_ on: Bool) {
+        if !on && playing { windowFrame = currentFrame(); time = 0 }
+        playing = on
+    }
+
+    func advance(_ dt: Double) {
+        guard playing else { return }
+        let before = Int(time * 4)
+        time += min(max(dt, 0), 0.1) * speed
+        if Int(time * 4) != before { tourTick += 1 }
+    }
+
+    /// Pull direction q (an index into `dims`) toward the display axes: angles in radians per axis.
+    func tilt(toward q: Int, by angles: SIMD3<Double>) {
+        guard dims.indices.contains(q) else { return }
+        if playing { setPlaying(false) }
+        windowFrame = currentFrame().tilted(toward: q, by: angles)
+        time = 0
+    }
+
+    /// Re-center the data in the window and frame it so 95% of the focused block's tokens fit.
+    func recenter() { view.center = .zero; view.zoom = 1; depth = 0; refitWindow() }
+
+    func refitWindow() {
+        guard let f = focused, clouds.indices.contains(f) else { return }
+        var sample = WindowSample()
+        clouds[f].project(currentFrame(), dims: dims, into: &sample)
+        view.fit = WindowView.framing(sample.base)
+    }
+
+    /// The principal directions that get handles on the current page, as (index into dims, PC number).
+    var handleDirections: [(q: Int, pc: Int)] {
+        let all = dims.enumerated().map { (q: $0.offset, pc: $0.element) }.sorted { $0.pc < $1.pc }
+        return Array(all.dropFirst(handlePage * 8).prefix(8))
+    }
+
+    /// "X ≈ PC1 · Y ≈ mostly PC4 · Z ≈ PC3" for the current window.
+    var axisSummary: String {
+        _ = tourTick
+        let f = currentFrame(), d = dims
+        return ["X", "Y", "Z"].enumerated().map { a, name in
+            let (q, w) = f.dominant(axis: a)
+            return "\(name) ≈ \(w > 0.9 ? "" : "mostly ")PC\(d[q] + 1)"
+        }.joined(separator: " · ")
+    }
 
     // MARK: live FlowScope connection (Server-Sent Events from `flowscope run ... --host 0.0.0.0`)
 

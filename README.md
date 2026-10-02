@@ -13,14 +13,27 @@ dimensionality) and `% seen` (share of its variance inside the view's principal 
    Both are real recordings of Karpathy's Zero-to-Hero GPT, steps 0-1000. Regenerate with
    `uv run --project ../flowscope python Capture/record_flowscope_samples.py`.
 2. **Enter gallery.** Nothing moves: it's a still view with X/Y/Z = PC1/PC2/PC3.
-3. **Step inside a block**: tap it (or pick it under Space). It becomes a ~2.4 m window in front of you; the other
-   blocks move to a rail on your left (tap one to switch). Pinch to zoom, drag to move, rotate with two hands, walk
-   into it. **Smaller / Larger / Recenter / Back to gallery** do the same from the panel.
-4. **View**: step each axis to any principal direction (◀ ▶) to look at the data from there.
-5. **Tour (optional)**: **Start tour** rotates the window smoothly through the toured directions (the grand tour
-   from [FlowScope](../flowscope), same math: the Swift port matches `tour.js` to 1e-9), starting from your axes.
-6. **Training step** compares the same view across training. Step 0 of the no-residual run already shows rank
+3. **Step inside a block**: tap it (or pick it under Space). It becomes a fixed window in front of you, a 2.4 m cube
+   (or sphere) you can walk to and into. The window never moves; you move the data through it:
+   - **Pinch the data with both hands** to zoom: zoom in and tokens spread apart and leave through the boundary;
+     zoom out and data from outside comes in. Faint dots on the boundary hint at data just outside.
+   - **Pinch and drag the data** to slide it through the window.
+   - **Pull a direction knob** toward an axis to **tilt the window** inside the high-dimensional space. Each knob is
+     one principal direction, labelled with how much of it you see: it sits on its spoke tip inside the window when
+     the direction is in view, and waits in a column along the window's front-left edge when it's hidden.
+     Tilting is the only motion that changes the shape: with 8 directions toured there are 15 ways to tilt
+     (3 axes x 5 hidden directions); page the handles and raise "directions toured" to reach all 64.
+   - **Tap a token** to see its character in the sentence around it; a line traces that sentence through the window.
+   - **Slice** mode shows only tokens near this 3D slice of the space; **Depth** slides the slice along a hidden
+     direction, so tokens enter and leave without anything moving.
+   The other blocks wait on a rail to your left; tap one to switch. Every gesture has a button in the panel too.
+4. **Tour (optional)**: Start tour moves the window on its own (the grand tour from [FlowScope](../flowscope), same
+   math: the Swift port matches `tour.js` to 1e-9), starting from wherever you left it; stopping keeps that view.
+5. **Training step** compares the same view across training. Step 0 of the no-residual run already shows rank
    collapse: from block 3 on, the tokens lie on thin strands (~2 effective dims).
+
+The interaction was designed in `Prototype/` first: a walkable browser version on the same data
+(`python3 Prototype/build.py` builds `Prototype/inside-a-block.html`).
 
 **Live:** on the Mac run `flowscope run train.py --host 0.0.0.0` (it prints the address, e.g. `192.168.1.20:8765`),
 enter it under **Run**, and **Connect live**: the gallery updates while you train. The first time, the app asks for
