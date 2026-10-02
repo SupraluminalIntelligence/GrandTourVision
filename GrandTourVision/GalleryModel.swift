@@ -12,6 +12,7 @@ final class GalleryModel {
     static let samples: [(file: String, title: String)] = [
         ("healthy-12-layers", "Healthy · 12 blocks (recorded)"),
         ("no-residual-12-layers", "No residual · 12 blocks (recorded)"),
+        ("lfm25-harness-compare", "LFM2.5-2.6B · base vs harness RL"),
     ]
 
     private(set) var source: Source = .none
@@ -26,6 +27,7 @@ final class GalleryModel {
     private(set) var playing = false  // still by default: you explore; the tour moves only when asked
     var speed = 1.0
     var colorByToken = false
+    var colorByGroup = true            // when the run has groups (e.g. harnesses), color by them
     var focused: Int? { didSet { if focused != oldValue { pinned = nil; recenter() } } }
     var galleryOpen = false
 
@@ -67,7 +69,9 @@ final class GalleryModel {
         self.source = source
         focused = nil
         try select(frame: 0)
-        status = "\(frames.count) snapshots · steps \(frames.first!.step)–\(frames.last!.step)"
+        status = frames.first?.name != nil
+            ? "\(frames.count) checkpoints: " + frames.compactMap(\.name).joined(separator: ", ")
+            : "\(frames.count) snapshots · steps \(frames.first!.step)–\(frames.last!.step)"
     }
 
     /// Switching training step keeps the tour time and toured dims, so the same view is compared across steps.
@@ -224,4 +228,13 @@ final class GalleryModel {
             status = "Live · step \(frame.step)"
         } catch { status = "Bad frame: \(error.localizedDescription)" }
     }
+
+    /// Whether frames are checkpoints (comparison runs) rather than training steps.
+    var framesAreCheckpoints: Bool { frames.first?.name != nil }
+    func frameTitle(_ i: Int) -> String { frames.indices.contains(i) ? frames[i].name ?? String(frames[i].step) : "" }
+    var frameLabel: String { frame.map { $0.name ?? "step \($0.step)" } ?? "" }
+
+    /// Point colors when grouping: a fixed palette that stays distinguishable in passthrough.
+    static let groupColors: [SIMD3<Float>] = [[1.0, 0.62, 0.26], [0.27, 0.78, 0.95], [0.93, 0.36, 0.72], [0.45, 0.88, 0.45],
+                                              [0.98, 0.85, 0.3], [0.62, 0.5, 0.98]]
 }

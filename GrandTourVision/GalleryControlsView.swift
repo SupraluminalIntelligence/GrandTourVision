@@ -34,7 +34,7 @@ struct GalleryControlsView: View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Layer gallery").font(.largeTitle.bold())
-                Text("Every block of a transformer as a cloud of token vectors around you. Step inside one to explore its 64-dimensional space at room scale.")
+                Text("Every block of a transformer as a cloud of token vectors around you. Step inside one to explore its high-dimensional space at room scale.")
                     .foregroundStyle(.secondary)
             }
             .padding(.vertical, 4)
@@ -52,7 +52,7 @@ struct GalleryControlsView: View {
         } header: { Text("Live from your Mac") } footer: {
             Text("Run `flowscope run train.py --host 0.0.0.0`; it prints the address to enter here.")
         }
-        if model.frames.count > 1 { Section("Training step") { stepPicker } }
+        if model.frames.count > 1 { Section(model.framesAreCheckpoints ? "Checkpoint" : "Training step") { stepPicker } }
         Section {
             Button { enter() } label: {
                 Text("Enter gallery").font(.title3.bold()).frame(maxWidth: .infinity).padding(.vertical, 6)
@@ -151,7 +151,10 @@ struct GalleryControlsView: View {
                     Slider(value: $model.windowSize, in: 0.5...2)
                 }
                 Toggle("Edge hints for data just outside", isOn: $model.showHints)
-                Toggle("Color by token", isOn: $model.colorByToken).disabled(model.frame?.tokens == nil)
+                if model.frame?.groups != nil {
+                    Toggle("Color by \(model.framesAreCheckpoints ? "harness" : "group")", isOn: $model.colorByGroup)
+                }
+                Toggle("Color by token", isOn: $model.colorByToken).disabled(model.frame?.tokens == nil || (model.frame?.groups != nil && model.colorByGroup))
                 axisSteppers
                 Button("Back to PC1–PC3") { model.resetView() }
                 HStack {
@@ -192,11 +195,17 @@ struct GalleryControlsView: View {
         }
     }
 
-    private var stepPicker: some View {
-        Picker("Training step", selection: Binding(get: { model.frameIndex }, set: { try? model.select(frame: $0) })) {
-            ForEach(model.frames.indices, id: \.self) { Text(verbatim: String(model.frames[$0].step)).tag($0) }
+    // checkpoint names are long ("multi-harness SFT"): a menu shows them whole, where segments would truncate
+    @ViewBuilder private var stepPicker: some View {
+        let picker = Picker(model.framesAreCheckpoints ? "Checkpoint" : "Training step", selection: Binding(get: { model.frameIndex }, set: { try? model.select(frame: $0) })) {
+            // iterate the frames themselves: switching to a run with fewer frames must not re-read stale positions
+            ForEach(Array(model.frames.enumerated()), id: \.offset) { i, f in Text(verbatim: f.name ?? String(f.step)).tag(i) }
         }
-        .pickerStyle(.segmented)
+        if model.framesAreCheckpoints {
+            picker.pickerStyle(.menu).accessibilityIdentifier("step-picker")
+        } else {
+            picker.pickerStyle(.segmented).accessibilityIdentifier("step-picker")
+        }
     }
 
     private var axisSteppers: some View {

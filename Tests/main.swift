@@ -337,4 +337,18 @@ do {
     let inside = sample.base.filter { view.reach(view.local($0)) <= 1.0001 }.count
     check(inside >= Int(0.95 * Double(sample.base.count)), "framing fits 95% of tokens inside the window at zoom 1")
 }
+// Comparison frames (flowscope.compare): checkpoint name, token texts, groups, similarity per layer.
+do {
+    var cmp = flowFrame
+    cmp.name = "multi-harness RL"; cmp.texts = Array(repeating: "tok", count: cmp.N)
+    cmp.groups = (0..<cmp.N).map { $0 / 64 }; cmp.groupNames = ["claude-code", "codex", "opencode", "mini-swe-agent"]
+    cmp.similarity = Array(repeating: 0.9, count: cmp.layers.count); cmp.retained = 0.97
+    let roundTrip = try JSONDecoder().decode(FlowFrame.self, from: JSONEncoder().encode(cmp))
+    check(roundTrip.name == "multi-harness RL" && roundTrip.groups?[255] == 3 && roundTrip.similarity?.count == 13 && (try? roundTrip.validate()) != nil,
+          "comparison frames keep checkpoint name, groups, texts and per-layer similarity")
+    var bad = cmp; bad.groupNames = ["only one"]
+    check((try? bad.validate()) == nil, "groups must refer to named groups")
+    var short = cmp; short.similarity = [1]
+    check((try? short.validate()) == nil, "similarity needs one value per layer")
+}
 print("All checks passed")

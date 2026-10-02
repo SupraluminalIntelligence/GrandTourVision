@@ -109,10 +109,50 @@ final class ImmersivePlotTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["gallery-status"].label.contains("6 snapshots"))
     }
     private func count(_ label: XCUIElement) -> Int { Int(label.label.split(separator: " ").first ?? "") ?? -1 }
+    @MainActor
+    func testHarnessComparison() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication(); app.launch()
+        let run = app.buttons["LFM2.5-2.6B · base vs harness RL"]
+        XCTAssertTrue(run.waitForExistence(timeout: 20))
+        run.tap()
+        XCTAssertTrue(app.staticTexts["gallery-status"].label.contains("4 checkpoints"), app.staticTexts["gallery-status"].label)
+        app.buttons["enter-gallery"].tap()
+        XCTAssertTrue(app.buttons["Exit gallery"].waitForExistence(timeout: 30))
+        captureStage("30-lfm-gallery-base", seconds: 8)
+        try choose("multi-harness SFT", in: app.buttons["step-picker"], app: app)
+        captureStage("31-lfm-gallery-sft", seconds: 6)
+        try choose("b29", in: app.buttons["focus-block"], app: app)
+        captureStage("32-lfm-b29-sft", seconds: 8)
+        try choose("base", in: app.buttons["step-picker"], app: app)
+        captureStage("33-lfm-b29-base", seconds: 6)
+        try choose("multi-harness RL", in: app.buttons["step-picker"], app: app)
+        captureStage("34-lfm-b29-rl", seconds: 6)
+        app.buttons["Exit gallery"].tap()
+        XCTAssertTrue(app.buttons["enter-gallery"].waitForExistence(timeout: 20))
+    }
+    /// Open a picker menu and pick an item, scrolling a long menu (31 blocks) until the item can be tapped.
+    @MainActor private func choose(_ item: String, in menu: XCUIElement, app: XCUIApplication) throws {
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        // the menu is a collection view that only materializes the rows on screen
+        // (the block menu starts with "emb"; after a scroll that row is gone, so keep the list by its index)
+        let target = app.buttons[item]
+        if !target.waitForExistence(timeout: 3) {
+            XCTAssertTrue(app.collectionViews.containing(.button, identifier: "emb").firstMatch.waitForExistence(timeout: 5))
+            let lists = app.collectionViews.allElementsBoundByIndex
+            let index = try XCTUnwrap(lists.firstIndex { $0.buttons["emb"].exists })
+            for _ in 0..<12 where !(target.exists && target.isHittable) { app.collectionViews.element(boundBy: index).swipeUp(velocity: .slow) }
+        }
+        target.tap()
+    }
     @MainActor private func openClassic() -> XCUIApplication {
         let app = XCUIApplication(); app.launch()
-        XCTAssertTrue(app.buttons["open-classic"].waitForExistence(timeout: 30))
-        app.buttons["open-classic"].tap()
+        // the link is the home form's last footer: scroll down to it (the form only materializes rows on screen)
+        let classic = app.buttons["open-classic"]
+        XCTAssertTrue(app.buttons["enter-gallery"].waitForExistence(timeout: 30))
+        for _ in 0..<6 where !(classic.exists && classic.isHittable) { app.collectionViews.firstMatch.swipeUp(velocity: .slow) }
+        classic.tap()
         return app
     }
     @MainActor private func captureStage(_ name: String, seconds: Double) {

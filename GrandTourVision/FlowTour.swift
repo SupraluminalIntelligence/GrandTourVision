@@ -21,6 +21,14 @@ struct FlowFrame: Codable, Equatable {
     let tokens: [Int]?
     var label: String?
     var vocab: String?  // token id -> character, when the run is character-level (lets the headset show text)
+    // From checkpoint comparisons (flowscope.compare): one frame per checkpoint, in one shared basis.
+    var name: String?              // e.g. "base", "multi-harness RL"; shown instead of the step
+    var texts: [String]?           // each point's decoded token
+    var groups: [Int]?             // each point's group, e.g. which harness the token came from
+    var groupNames: [String]?
+    var similarity: [Double]?      // per layer: linear CKA against the first checkpoint
+    var change: [Double]?          // per layer: median relative change of each token's vector vs the first checkpoint
+    var retained: Double?          // share of the full hidden size's spread kept by the C directions
 
     static let maxValues = 4_194_304
 
@@ -29,6 +37,11 @@ struct FlowFrame: Codable, Equatable {
         try require(C >= 3 && N >= 2 && T >= 1 && !layers.isEmpty, "FlowScope frame needs ≥3 dims, ≥2 tokens and ≥1 layer.")
         try require(N * C * layers.count <= Self.maxValues, "FlowScope frame is too large.")
         try require(tokens == nil || tokens!.count == N, "FlowScope token ids don't match the point count.")
+        try require(texts == nil || texts!.count == N, "FlowScope token texts don't match the point count.")
+        try require(groups == nil || (groups!.count == N && groups!.allSatisfy { $0 >= 0 && $0 < (groupNames?.count ?? 0) }),
+                    "FlowScope groups don't match the point count or the group names.")
+        try require(similarity == nil || similarity!.count == layers.count, "FlowScope similarity needs one value per layer.")
+        try require(change == nil || change!.count == layers.count, "FlowScope change needs one value per layer.")
     }
 }
 

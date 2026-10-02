@@ -27,7 +27,10 @@ struct GalleryView: View {
             Attachment(id: "title") { GalleryTitle(model: model) }
             ForEach(model.clouds.indices, id: \.self) { i in
                 Attachment(id: "label-\(i)") {
-                    CloudLabel(cloud: model.clouds[i], seen: model.percentSeen(i), compact: model.focused != nil)
+                    CloudLabel(cloud: model.clouds[i], seen: model.percentSeen(i), compact: model.focused != nil,
+                               dense: model.clouds.count > denseLabelCount,
+                               similarity: model.frameIndex > 0 ? model.frame?.similarity?[i] : nil,
+                               change: model.frameIndex > 0 ? model.frame?.change?[i] : nil)
                 }
             }
             ForEach(0..<WindowDecor.handleCount, id: \.self) { j in
@@ -98,34 +101,69 @@ private struct GalleryTitle: View {
             if let f = model.focused, model.clouds.indices.contains(f) {
                 let cloud = model.clouds[f]
                 Text("\(cloud.name) · \(model.title)").font(.title2.bold())
-                Text("dim \(cloud.dim, specifier: "%.1f") · step \(model.frame?.step ?? 0) · \(model.insideCount) of \(model.frame?.N ?? 0) tokens in the window · zoom \(model.view.zoom, specifier: "%.1f")×")
+                Text("dim \(cloud.dim, specifier: "%.1f") · \(model.frameLabel) · \(model.insideCount) of \(model.frame?.N ?? 0) tokens in the window · zoom \(model.view.zoom, specifier: "%.1f")×")
                     .font(.callout).foregroundStyle(.secondary)
+                if model.frameIndex > 0, let sim = model.frame?.similarity?[f], let moved = model.frame?.change?[f] {
+                    // comparison runs: how this block differs from the first checkpoint
+                    Text("vs \(model.frameTitle(0)): similarity \(sim, specifier: "%.3f") (linear CKA) · tokens moved \(moved * 100, specifier: "%.0f")%")
+                        .font(.callout).foregroundStyle(sim < 0.95 ? .orange : .secondary)
+                }
                 Text("Pinch the data to zoom · drag it to move · pull a handle to tilt · walk in")
                     .font(.caption).foregroundStyle(.tertiary)
             } else {
                 Text(model.title).font(.title2.bold())
-                Text("step \(model.frame?.step ?? 0) · \(model.frame?.N ?? 0) tokens × \(model.frame?.C ?? 0) dims")
+                Text("\(model.frameLabel) · \(model.frame?.N ?? 0) tokens × \(model.frame?.C ?? 0) dims")
                     .font(.callout).foregroundStyle(.secondary)
                 Text("Tap a block to step inside it").font(.caption).foregroundStyle(.tertiary)
             }
             Text(model.playing ? "Touring \(model.dims.count) directions" : model.axisSummary)
                 .font(.caption).foregroundStyle(.secondary)
+            if model.colorByGroup, let names = model.frame?.groupNames, model.frame?.groups != nil {
+                HStack(spacing: 14) {
+                    ForEach(names.indices, id: \.self) { g in
+                        let c = GalleryModel.groupColors[g % GalleryModel.groupColors.count]
+                        HStack(spacing: 5) {
+                            Circle().fill(Color(red: Double(c.x), green: Double(c.y), blue: Double(c.z))).frame(width: 10, height: 10)
+                            Text(names[g]).font(.caption)
+                        }
+                    }
+                }
+            }
         }
         .padding(.horizontal, 24).padding(.vertical, 12)
         .glassBackgroundEffect()
     }
 }
 
+/// Above this many blocks the arc gets crowded: labels show the name and one number.
+private let denseLabelCount = 16
+
 private struct CloudLabel: View {
     let cloud: FlowCloud
     let seen: Int
     let compact: Bool
+    var dense = false              // many blocks share the arc: name and one number only
+    var similarity: Double? = nil  // linear CKA against the first checkpoint, for comparison runs
+    var change: Double? = nil      // how far its token vectors moved from the first checkpoint
     var body: some View {
         VStack(spacing: 2) {
-            Text(cloud.name).font(compact ? .callout.bold() : .title3.bold())
-            Text("dim \(cloud.dim, specifier: "%.1f")")
-                .font(compact ? .caption2 : .callout).foregroundStyle(cloud.dim < 3 ? .orange : .secondary)
-            if !compact {
+            Text(cloud.name).font(compact || dense ? .callout.bold() : .title3.bold())
+            if dense {
+                if let change {
+                    Text(String(format: "moved %.0f%%", change * 100)).font(.caption)
+                        .foregroundStyle((similarity ?? 1) < 0.95 ? .orange : .secondary)
+                } else {
+                    Text("dim \(cloud.dim, specifier: "%.1f")").font(.caption).foregroundStyle(cloud.dim < 3 ? .orange : .secondary)
+                }
+            } else if let similarity {
+                Text(change.map { String(format: "vs base %.2f · moved %.0f%%", similarity, $0 * 100) } ?? String(format: "vs base %.2f", similarity))
+                    .font(compact ? .caption2 : .callout).foregroundStyle(similarity < 0.9 ? .orange : .secondary)
+            }
+            if !dense {
+                Text("dim \(cloud.dim, specifier: "%.1f")")
+                    .font(compact ? .caption2 : .callout).foregroundStyle(cloud.dim < 3 ? .orange : .secondary)
+            }
+            if !compact && !dense {
                 Text("\(seen)% seen").font(.caption).foregroundStyle(seen < 50 ? .yellow : .secondary)
             }
         }
@@ -159,9 +197,13 @@ private struct TokenCard: View {
     var body: some View {
         if let p = model.pinned, let f = model.frame, let tokens = f.tokens, p < tokens.count {
             let start = (p / f.T) * f.T, i = p - start
-            let text = tokens[start..<min(start + f.T, tokens.count)].map { character($0, f.vocab) }
+            let text: [String] = (start..<min(start + f.T, tokens.count)).map { k in
+                if let texts = f.texts { return visible(texts[k]) }  // decoded tokens from a comparison run
+                return character(tokens[k], f.vocab)                // character-level runs carry a vocabulary
+            }
+            let group = f.groups.flatMap { g in f.groupNames.map { $0[g[p]] } }
             VStack(alignment: .leading, spacing: 4) {
-                Text("Sequence \(p / f.T + 1), position \(i)").font(.caption).foregroundStyle(.secondary)
+                Text("\(group.map { "\($0) · " } ?? "")sequence \(p / f.T + 1), position \(i)").font(.caption).foregroundStyle(.secondary)
                 text.indices.reduce(Text("")) { line, k in
                     line + Text(verbatim: text[k]).foregroundColor(k == i ? .cyan : .secondary).bold(k == i)
                 }
@@ -171,6 +213,10 @@ private struct TokenCard: View {
             .padding(12)
             .glassBackgroundEffect(in: RoundedRectangle(cornerRadius: 14))
         }
+    }
+
+    private func visible(_ s: String) -> String {
+        s.replacingOccurrences(of: "\n", with: "⏎").replacingOccurrences(of: " ", with: "␣")
     }
 
     private func character(_ id: Int, _ vocab: String?) -> String {
@@ -199,7 +245,7 @@ final class GalleryScene {
 
     /// Rebuild when the data's shape or coloring changes; otherwise just (re)attach labels.
     func sync(model: GalleryModel, attachments: RealityViewAttachments) {
-        let colorKey = "\(model.colorByToken)-\(model.frame?.T ?? 0)-\(model.frame?.tokens?.prefix(8).map(String.init).joined() ?? "")"
+        let colorKey = "\(model.colorByToken)-\(model.colorByGroup)-\(model.frame?.T ?? 0)-\(model.frame?.tokens?.prefix(8).map(String.init).joined() ?? "")"
         let n = model.frame?.N ?? 0
         if shape.layers != model.clouds.count || shape.points != n || shape.colorKey != colorKey {
             clouds.forEach { $0.entity.removeFromParent() }
@@ -281,6 +327,9 @@ final class GalleryScene {
     private func colors(_ model: GalleryModel) -> [SIMD3<Float>] {
         guard let f = model.frame else { return [] }
         return (0..<f.N).map { p in
+            if model.colorByGroup, let groups = f.groups {
+                return GalleryModel.groupColors[groups[p] % GalleryModel.groupColors.count]
+            }
             if model.colorByToken, let tokens = f.tokens {
                 let h = Float((Double(tokens[p]) * 137.508).truncatingRemainder(dividingBy: 360) / 360)
                 return hsv(h, 0.65, 0.95)
@@ -296,8 +345,12 @@ final class GalleryScene {
             let radius: Float = 1.6
             let span = min(Float.pi * 0.83, Float(max(count - 1, 1)) * 0.25)
             let angle = count == 1 ? 0 : -span / 2 + span * Float(i) / Float(count - 1)
-            let size = min(0.17, 0.42 * radius * span / Float(max(count - 1, 1)))
-            return Placement(position: [radius * sin(angle), 1.5, -radius * cos(angle)], size: size, opacity: 1, labelScale: 1.1, yaw: -angle)
+            let pitch = radius * span / Float(max(count - 1, 1))  // metres between neighbours
+            let size = min(0.17, 0.42 * pitch)
+            // labels shrink with the spacing so neighbours never overlap; many blocks get the narrow dense label
+            let room: Float = count > denseLabelCount ? 0.12 : 0.3  // metres a label needs at full size
+            return Placement(position: [radius * sin(angle), 1.5, -radius * cos(angle)], size: size, opacity: 1,
+                             labelScale: min(1.1, 1.1 * pitch / room), yaw: -angle)
         }
         if f == i {
             let size = Self.windowRadius * model.windowSize
