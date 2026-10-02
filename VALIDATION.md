@@ -1,0 +1,18 @@
+# Validation — 2026-10-01, mixed immersive single plot
+
+- Xcode 27.0 (27A266a), visionOS and simulator SDK 27.0. Deployment target remains visionOS 2.0.
+- Final unsigned arm64 simulator build-for-testing **SUCCEEDED**; final unsigned arm64 physical-device SDK build **SUCCEEDED**. App Intents metadata extraction skipped because the app has no AppIntents dependency.
+- **119 Swift PASS checks**: projection orthonormality including 4,096D, CSV/trace bounds, shared normalization/scale, stable identity, public fixture provenance/padding exclusion, synthetic fixture contract, and room animation/physical-placement coordination. Physical placement changes preserve basis/playback; animation changes basis without overwriting pose; recenter preserves running animation; manual projection pauses without moving scene; nonfinite physical transforms are rejected.
+- **6 Python tests passed**, using a mocked tensor protocol for capture/export bounds and hook cleanup. Actual PyTorch integration, inference and training were not run.
+- Reference `IMG_2821.png` was materialized locally from the supplied Library identity (402,229 bytes) and visually inspected before design. It is retained as a local reference and excluded from the source archive.
+- Native **ImmersivePlotTests: 2 tests, zero failures**, on Apple's visionOS 27.0 (24M362) Apple Vision Pro simulator. `testRoomAnimationAndManipulationControls` passed (57.546 s); `testRoomReentryAndManualProjection` passed (30.845 s). See `ui-immersive-final.log`.
+- Verified immersive entry; exactly one selected cloud; synthetic 128 × 64 metadata; running animation during larger/move/rotate controls; recenter; hide/show; increasing tour time; pause/lock; block.1 / step-100; exit; repeated room entry; manual nudge and resume on the public tiny-GPT trace.
+- Real unedited 3840×2160 screenshots and 10-second H.264 simulator video captured with official simctl. Final screenshots inspected: a large diffuse point cloud spans the room, with axes/data legend; no plot grid or bounded volume. Video frames decoded and inspected separately.
+- System-targeted drag, rotate and magnify gestures are wired to the same bounded physical-placement operations exercised by the coordination tests. **Actual headset hand gestures, walking around/inside, device deployment and performance remain unverified.** No ARKit hand-tracking or room-mesh permissions are requested.
+- No model execution/downloads, third-party package installation, paid services, signing credentials/team changes, device pairing/provisioning, push or publication. The official simulator runtime was installed earlier only after user approval.
+
+Projection and physical placement are separate: animation changes an orthonormal input basis; gestures change a metre-space translation/normalized quaternion/scale. Layer selection pauses animation and preserves both basis and pose. Normalization and display reference are shared across all snapshots. Immersive projection excursions remain visible, without clipping, clamping or per-frame refitting.
+
+The 128 × 64 room fixture is seeded full-dimensional Gaussian data with explicitly fabricated layer/checkpoint changes and synthetic token identities. It is labeled NO MODEL RUN. The public 18 × 48 fixture preserves real recorded activations and MIT provenance. Neither is a production-LLM performance or interpretability result. The reference's unit-RMS residual, participation ratio and percent-variance metrics are not implemented or claimed.
+
+Historical volume screenshots/UI tests are superseded by this immersive flow. Saved viewpoints remain session-only; model/capture adapters and 4,096D throughput require further validation.

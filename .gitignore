@@ -1,0 +1,20 @@
+.build/
+.build-device/
+.swift-cache/
+Tests/core-tests
+*.xcuserstate
+xcuserdata/
+__pycache__/
+*.pyc
+.ui-*
+Screenshots/*.png
+.DS_Store
+*.xcresult
+*.log
+# local validation artifacts and large captures
+*-delivery*.json
+library-delivery-*.json
+archive-verification.json
+Screenshots/*.mov
+Screenshots/*.mp4
+Reference/
