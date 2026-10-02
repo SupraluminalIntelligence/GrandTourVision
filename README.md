@@ -22,7 +22,7 @@ dimensionality) and `% seen` (share of its variance inside the view's principal 
 6. **Training step** compares the same view across training. Step 0 of the no-residual run already shows rank
    collapse: from block 3 on, the tokens lie on thin strands (~2 effective dims).
 
-**Live:** on the Mac run `flowscope run train.py --host 0.0.0.0` (it prints the address, e.g. `10.0.0.204:8765`),
+**Live:** on the Mac run `flowscope run train.py --host 0.0.0.0` (it prints the address, e.g. `192.168.1.20:8765`),
 enter it under **Run**, and **Connect live**: the gallery updates while you train. The first time, the app asks for
 local-network permission (plain HTTP to your Mac only). Record a run for later with `--record run.jsonl`.
 
