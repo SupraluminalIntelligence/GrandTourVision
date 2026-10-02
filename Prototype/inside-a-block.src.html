@@ -1,0 +1,911 @@
+<title>Inside a Block</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a full-bleed walkable 3D room; the network's blocks on a rail at left, the "window" instruments
+   at right, a floor map and your position at bottom left. Deliberately dark: it stands in for a headset. */
+:root {
+  --bg: #07090f;
+  --glass: rgba(20, 25, 38, 0.78);
+  --line: rgba(148, 163, 196, 0.18);
+  --fg: #e6eaf3;
+  --muted: #8a93a8;
+  --faint: #59617a;
+  --accent: #22d3ee;
+  --warn: #f5a524;
+  --x: #ff6b6b;
+  --y: #5ee08a;
+  --z: #6aa8ff;
+  --ui: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.4 var(--ui); overflow: hidden; }
+#app { position: relative; height: 100%; }
+#scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#scene.dragging { cursor: grabbing; }
+.hud { position: absolute; background: var(--glass); border: 1px solid var(--line); border-radius: 12px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.eyebrow { font: 600 10px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* where you are in the network + what this block is */
+#title { left: 16px; top: 16px; padding: 12px 16px; max-width: min(460px, calc(100% - 32px)); display: grid; gap: 6px; }
+#title h1 { margin: 0; font: 700 28px/1 var(--ui); letter-spacing: -.01em; text-wrap: balance; }
+#title h1 small { font: 500 15px/1 var(--ui); color: var(--muted); letter-spacing: 0; margin-left: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 12px/1 var(--mono); padding: 5px 8px; border-radius: 6px; background: rgba(148,163,196,.1); color: var(--fg); }
+.chip.warn { color: var(--warn); background: rgba(245,165,36,.12); }
+.chip.accent { color: var(--accent); background: rgba(34,211,238,.1); }
+
+#rail { left: 16px; top: 132px; padding: 8px; display: grid; gap: 2px; max-height: calc(100% - 360px); overflow-y: auto; }
+#rail button { display: grid; grid-template-columns: 34px 46px 40px; align-items: center; gap: 8px; padding: 5px 8px;
+  border: 0; border-radius: 7px; background: transparent; color: var(--muted); font: 500 13px/1 var(--ui); cursor: pointer; text-align: left; }
+#rail button:hover { background: rgba(148,163,196,.1); color: var(--fg); }
+#rail button[aria-current="true"] { background: rgba(34,211,238,.14); color: var(--fg); }
+#rail button:focus-visible, .panel button:focus-visible, .panel input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.dimbar { height: 4px; border-radius: 2px; background: var(--faint); }
+#rail .dimval { font: 500 11px/1 var(--mono); color: var(--muted); text-align: right; }
+#rail .dimval.low { color: var(--warn); }
+
+/* the window instruments */
+.panel { right: 16px; top: 16px; width: 300px; max-height: calc(100% - 32px); overflow-y: auto; padding: 4px 0; }
+.panel section { padding: 12px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 9px; }
+.panel section:last-child { border-bottom: 0; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: rgba(148,163,196,.08); border-radius: 8px; padding: 2px; }
+.seg button { border: 0; background: transparent; color: var(--muted); font: 500 13px/1 var(--ui); padding: 7px 6px; border-radius: 6px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: rgba(230,234,243,.12); color: var(--fg); }
+.btn { border: 1px solid var(--line); background: rgba(148,163,196,.08); color: var(--fg); font: 500 13px/1 var(--ui);
+  padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+.btn.primary { background: var(--accent); color: #04121a; border-color: transparent; font-weight: 600; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.axis { display: grid; grid-template-columns: 18px 22px 1fr 22px; align-items: center; gap: 6px; }
+.axis b { font: 600 13px/1 var(--mono); }
+.axis .name { font: 500 13px/1 var(--mono); text-align: center; }
+.axis button { width: 22px; height: 22px; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 6px; cursor: pointer; line-height: 1; }
+.mix { display: grid; gap: 3px; }
+.mixrow { display: grid; grid-template-columns: 18px 1fr; gap: 6px; align-items: center; }
+.mixrow .bars { display: flex; gap: 2px; height: 16px; align-items: flex-end; }
+.mixrow .bars i { flex: 1; background: var(--faint); border-radius: 1px; min-height: 1px; }
+label.slider { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: 13px; color: var(--muted); }
+label.slider input { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.note { font-size: 12px; color: var(--muted); line-height: 1.45; margin: 0; }
+
+/* where you are in the room */
+#map { left: 16px; bottom: 16px; padding: 10px; display: grid; gap: 8px; width: 214px; }
+#map canvas { width: 192px; height: 150px; display: block; }
+#where { font: 12px/1.5 var(--mono); color: var(--muted); }
+#where b { color: var(--fg); font-weight: 500; }
+
+#token { left: 50%; transform: translateX(-50%); bottom: 16px; padding: 12px 16px; display: grid; gap: 6px; min-width: 300px; max-width: calc(100% - 520px); }
+#token .ctx { font: 15px/1.3 var(--mono); white-space: pre; overflow-x: auto; color: var(--muted); }
+#token .ctx mark { background: var(--accent); color: #04121a; border-radius: 3px; padding: 0 1px; }
+#token .meta { font: 12px/1.4 var(--mono); color: var(--muted); }
+
+.steer { display: grid; grid-template-columns: auto 22px auto 22px 1fr; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.steer b { color: #ff9f43; font-size: 14px; text-align: center; min-width: 40px; }
+.steer button { width: 22px; height: 22px; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 6px; cursor: pointer; }
+#cover { width: 100%; height: 32px; display: block; }
+#steer-hud { left: 50%; top: 16px; transform: translateX(-50%); padding: 8px 14px; font: 600 14px/1.2 var(--mono); color: #ff9f43; }
+#help { right: 332px; bottom: 16px; padding: 8px 12px; font: 12px/1.4 var(--mono); color: var(--muted); max-width: 420px; }
+#help kbd { font: inherit; color: var(--fg); }
+
+@media (max-width: 860px) {
+  #help { display: none; }
+  #token { max-width: calc(100% - 32px); min-width: 0; bottom: 196px; }
+}
+@media (max-width: 640px) {
+  #title { padding: 10px 12px; }
+  #title h1 { font-size: 22px; }
+  #rail { top: auto; bottom: 16px; left: 16px; right: 16px; max-height: none; display: flex; overflow-x: auto; gap: 4px; }
+  #rail button { grid-template-columns: auto; gap: 2px; justify-items: center; }
+  #rail .dimbar { display: none; }
+  .panel { top: auto; bottom: 92px; left: 16px; right: 16px; width: auto; max-height: 40%; }
+  #map { display: none; }
+  #token { bottom: calc(40% + 110px); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div id="app">
+  <canvas id="scene" aria-label="Walkable 3D view of one transformer block's token vectors"></canvas>
+
+  <header id="title" class="hud">
+    <span class="eyebrow">GrandTourVision · inside a block · prototype</span>
+    <h1 id="t-block">b3<small id="t-run">No residual · step 0</small></h1>
+    <div class="chips" id="t-chips"></div>
+  </header>
+
+  <nav id="rail" class="hud" aria-label="Blocks of the network"></nav>
+
+  <aside class="hud panel" aria-label="Window controls">
+    <section>
+      <span class="eyebrow">Run</span>
+      <div class="seg" id="run-seg"></div>
+      <div class="seg" id="step-seg"></div>
+    </section>
+    <section>
+      <span class="eyebrow">Window orientation in 64-D</span>
+      <div id="axes"></div>
+      <div class="mix" id="mix" aria-label="Which principal directions make up X, Y and Z right now"></div>
+      <div class="steer">
+        <span>Steer toward</span>
+        <button id="steer-prev" aria-label="Previous hidden direction">‹</button>
+        <b class="mono" id="steer-name">PC4</b>
+        <button id="steer-next" aria-label="Next hidden direction">›</button>
+        <span class="mono note" id="steer-seen"></span>
+      </div>
+      <p class="note">Hold <b>Shift</b> and drag to tilt the window toward this direction (headset: hold a pinch with your other hand). <b>Shift+scroll</b> picks the direction. <b>Shift-drag a token</b> to tilt toward whatever that token is hiding.</p>
+      <p class="note" id="mix-note"></p>
+    </section>
+    <section>
+      <span class="eyebrow">Show</span>
+      <div class="seg" id="mode-seg">
+        <button id="mode-proj" aria-pressed="true">Projection</button>
+        <button id="mode-slice" aria-pressed="false">Slice</button>
+      </div>
+      <label class="slider" id="thick-wrap" hidden>Slice thickness <span class="mono" id="thick-val"></span>
+        <input id="thick" type="range" min="0.15" max="2.5" step="0.05" value="0.8"></label>
+      <p class="note" id="mode-note"></p>
+      <div class="seg" id="color-seg">
+        <button id="color-pos" aria-pressed="true">Position</button>
+        <button id="color-char" aria-pressed="false">Character</button>
+      </div>
+      <div id="legend" class="note"></div>
+    </section>
+    <section>
+      <span class="eyebrow">Explore: what you haven't seen</span>
+      <canvas id="cover" width="560" height="64" aria-label="Coverage: how much you have looked along each of the 64 directions"></canvas>
+      <p class="note" id="cover-note"></p>
+      <div class="row">
+        <button class="btn primary" id="jump-unseen">Show me what I haven't seen</button>
+      </div>
+      <div class="row">
+        <button class="btn" id="jump-spread">Most spread (this block)</button>
+        <button class="btn" id="jump-chars">Separate character types</button>
+        <button class="btn" id="jump-change">What this block changed</button>
+      </div>
+      <p class="note" id="jump-note">Each jump glides the window there; your hands take over from wherever it lands.</p>
+    </section>
+    <section>
+      <span class="eyebrow">Tour</span>
+      <div class="row">
+        <button class="btn primary" id="tour-btn">Start tour</button>
+        <button class="btn" id="axes-btn">Back to my axes</button>
+      </div>
+      <label class="slider">Speed <span class="mono" id="speed-val">1.0×</span>
+        <input id="speed" type="range" min="0.1" max="3" step="0.1" value="1"></label>
+      <label class="slider">Tour through the top <span class="mono" id="toured-val">8</span>
+        <input id="toured" type="range" min="3" max="64" step="1" value="8"></label>
+    </section>
+    <section>
+      <span class="eyebrow">Hands: move the data, not the window</span>
+      <div class="seg" id="drag-seg">
+        <button id="drag-look" aria-pressed="true">Drag looks</button>
+        <button id="drag-data" aria-pressed="false">Drag moves data</button>
+        <button id="drag-steer" aria-pressed="false">Drag steers</button>
+      </div>
+      <label class="slider">Data zoom (pinch) <span class="mono" id="dz-val">1.0×</span>
+        <input id="dz" type="range" min="-1.2" max="3" step="0.01" value="0"></label>
+      <label class="slider" id="depth-wrap" hidden>Depth: slide the window along <span class="mono" id="depth-dir">PC4</span>
+        <input id="depth" type="range" min="-3" max="3" step="0.02" value="0"></label>
+      <div class="row">
+        <button class="btn" id="reset-data">Re-center data</button>
+        <button class="btn" id="walk-in">Walk in</button>
+        <button class="btn" id="step-back">Step back</button>
+      </div>
+      <p class="note">Headset: pinch with both hands to zoom, grab with one hand to pull data through the window. Here: scroll to zoom, right-drag (or “Drag moves data”) to grab.</p>
+    </section>
+    <section>
+      <span class="eyebrow">Window in the room</span>
+      <div class="seg" id="shape-seg">
+        <button id="shape-cube" aria-pressed="true">Cube</button>
+        <button id="shape-sphere" aria-pressed="false">Sphere</button>
+      </div>
+      <label class="slider">Window size <span class="mono" id="zoom-val">2.4 m</span>
+        <input id="zoom" type="range" min="0.5" max="2.5" step="0.05" value="1"></label>
+      <label class="row note" for="ghosts"><input type="checkbox" id="ghosts" checked> Edge hints for data just outside</label>
+    </section>
+  </aside>
+
+  <div id="map" class="hud">
+    <span class="eyebrow">Your window in the data · front view</span>
+    <canvas id="minimap" width="384" height="300"></canvas>
+    <div id="where"></div>
+  </div>
+
+  <div id="token" class="hud" hidden>
+    <span class="eyebrow" id="tok-title">Token</span>
+    <div class="ctx" id="tok-ctx"></div>
+    <div class="meta" id="tok-meta"></div>
+  </div>
+
+  <div id="steer-hud" class="hud" hidden></div>
+  <div id="help" class="hud"><kbd>W A S D</kbd> walk · <kbd>Q E</kbd> down/up · drag to look · <kbd>scroll</kbd> zoom data · <kbd>right-drag</kbd> grab data · <kbd>Shift+drag</kbd> steer · <kbd>Shift+scroll</kbd> pick direction · <kbd>Shift-drag a token</kbd> reveal what it hides · <kbd>Alt+scroll</kbd> slice depth</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>/*FLOW_DATA*/</script>
+<script>
+(() => {
+  const D = window.FLOW_DATA;
+  const R = 1.2;                         // block radius in metres at size 1 (a ~2.4 m window)
+  const CENTER = new THREE.Vector3(0, 1.5, 0);
+  const $ = id => document.getElementById(id);
+  const S = { run: "no-residual", step: "0", layer: 3, axes: [0, 1, 2], toured: 8, playing: false, speed: 1, t: 0,
+              mode: "projection", thick: 0.8, color: "position", zoom: 1, hover: null, pinned: null,
+              dz: 1, center: [0, 0, 0], shape: "cube", ghosts: true, depth: 0, drag: "look", frame: null,
+              steerQ: 3, steering: null };
+
+  // ---------- data (same encoding and math as flowscope/tour.js) ----------
+  const cache = {};
+  function decode(layer, N, C) {
+    const bin = atob(layer.data), z = new Float32Array(N * C), v = new Float64Array(C);
+    for (let i = 0; i < z.length; i++) { const b = bin.charCodeAt(i); z[i] = (b > 127 ? b - 256 : b) * layer.scale; v[i % C] += z[i] * z[i] / N; }
+    return { name: layer.name, dim: layer.dim, z, v, total: v.reduce((a, b) => a + b, 0) || 1 };
+  }
+  function frame() {
+    const key = S.run + "@" + S.step;
+    if (!cache[key]) { const f = D.runs[S.run].frames[S.step]; cache[key] = { f, layers: f.layers.map(l => decode(l, f.N, f.C)) }; }
+    return cache[key];
+  }
+  function viewDims() {
+    const C = frame().f.C, axes = S.axes.filter(a => a < C);
+    const out = axes.slice();
+    for (let d = 0; d < C; d++) if (!axes.includes(d)) out.push(d);  // every direction: steering reaches all of them
+    return out;
+  }
+  function speeds(n) {  // torus method: every plane at once, irrationally related speeds
+    const out = []; let norm = 0, m = 2;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      while (Number.isInteger(Math.sqrt(m))) m++;
+      const v = 0.25 + 0.75 * (Math.sqrt(m) % 1); out.push([i, j, v]); norm += v * v; m++;
+    }
+    const k = 0.5 * Math.sqrt(3) / Math.sqrt(norm);
+    return out.map(([i, j, v]) => [i, j, v * k * Math.sqrt(n)]);
+  }
+  let planes = speeds(8), planesN = 8;
+  function basis(n, t) {
+    const m = Math.min(n, Math.max(3, S.toured));  // the tour rotates among the chosen axes and the top PCs only
+    if (m !== planesN) { planes = speeds(m); planesN = m; }
+    const v = S.frame && S.frame[0].length === n ? S.frame.map(b => Float64Array.from(b))
+      : Array.from({ length: Math.min(4, n) }, (_, a) => { const b = new Float64Array(n); b[a] = 1; return b; });
+    for (const [i, j, w] of planes) { const th = w * t, c = Math.cos(th), s = Math.sin(th);
+      for (const b of v) { const a = b[i], d = b[j]; b[i] = c * a - s * d; b[j] = s * a + c * d; } }
+    return v;
+  }
+  const charOf = id => D.vocab[id] ?? "?";
+  const show = c => c === "\n" ? "⏎" : c === " " ? "␣" : c;
+  function charClass(c) {
+    if (c === " " || c === "\n") return 0;
+    if (/[aeiou]/.test(c)) return 1;
+    if (/[a-z]/.test(c)) return 2;
+    if (/[A-Z]/.test(c)) return 3;
+    return 4;
+  }
+  const CLASS_NAMES = ["space / newline", "vowel", "consonant", "capital", "punctuation"];
+  const CLASS_COLORS = [[0.55, 0.6, 0.7], [1.0, 0.72, 0.25], [0.35, 0.8, 0.95], [0.95, 0.45, 0.7], [0.6, 0.95, 0.45]];
+  const VIRIDIS = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]].map(c => c.map(x => x / 255));
+  function viridis(t) {
+    t = Math.min(1, Math.max(0, t)) * 4; const i = Math.min(3, Math.floor(t)), f = t - i;
+    return VIRIDIS[i].map((a, k) => a + (VIRIDIS[i + 1][k] - a) * f);
+  }
+
+  // ---------- scene ----------
+  const canvas = $("scene");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x07090f);
+  scene.fog = new THREE.Fog(0x07090f, 6, 16);
+  const camera = new THREE.PerspectiveCamera(68, 1, 0.02, 60);
+  const HOME = new THREE.Vector3(0, 1.6, 3.6);
+  let yaw = 0, pitch = -0.04;
+  camera.position.copy(HOME);
+
+  const grid = new THREE.GridHelper(24, 48, 0x1c2333, 0x121826); scene.add(grid);
+  const cloud = new THREE.Group(); cloud.position.copy(CENTER); scene.add(cloud);
+
+  // The window: a fixed cube (or sphere) in the room. Data outside it is clipped. A floor footprint shows where it stands.
+  const glass = (o) => new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: o, side: THREE.BackSide, depthWrite: false });
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.4 });
+  const cubeShell = new THREE.Group();
+  cubeShell.add(new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), glass(0.03)));
+  cubeShell.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(2, 2, 2)), edgeMat));
+  const sphereShell = new THREE.Group();
+  sphereShell.add(new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), glass(0.035)));
+  sphereShell.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 129 }, (_, i) => new THREE.Vector3(Math.cos(i / 128 * Math.PI * 2), 0, Math.sin(i / 128 * Math.PI * 2)))), edgeMat));
+  cloud.add(cubeShell, sphereShell);
+  const footMat = new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.35 });
+  const footCube = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, z]) => new THREE.Vector3(x, 0, z))), footMat);
+  const footSphere = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 129 }, (_, i) => new THREE.Vector3(Math.cos(i / 128 * Math.PI * 2), 0, Math.sin(i / 128 * Math.PI * 2)))), footMat);
+  const foot = new THREE.Group(); foot.add(footCube, footSphere); foot.position.y = 0.003; scene.add(foot);
+  // direction handles (manual tour): spokes from the window's center; a spoke's length = how much you see of it
+  const HANDLES = 8, handles = [];
+  for (let j = 0; j < HANDLES; j++) {
+    const spokeGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+    const spoke = new THREE.Line(spokeGeo, new THREE.LineBasicMaterial({ color: 0xe6eaf3, transparent: true, opacity: 0.35 }));
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.032, 16, 12), new THREE.MeshBasicMaterial({ color: 0xe6eaf3, transparent: true, opacity: 0.9 }));
+    const tag = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false })); tag.scale.set(0.2, 0.05, 1);
+    knob.userData.handle = j; cloud.add(spoke, knob, tag); handles.push({ spoke, knob, tag, label: "" });
+  }
+  function updateHandles() {
+    const order = dimsNow.map((d, q) => [d, q]).sort((a, b) => a[0] - b[0]).slice(0, HANDLES);
+    handles.forEach((h, j) => {
+      const on = j < order.length; h.spoke.visible = h.knob.visible = h.tag.visible = on; if (!on) return;
+      const [d, q] = order[j]; h.q = q;
+      const v = new THREE.Vector3(B[0][q], B[1][q], B[2][q]), len = Math.min(1, v.length());
+      const park = new THREE.Vector3(-0.84 + 1.68 * j / (HANDLES - 1), -1.14, 1.0);  // tray at the window's lower front edge
+      const tip = len > 1e-3 ? v.clone().normalize().multiplyScalar(0.92) : park.clone();
+      const at = tip.multiplyScalar(len).add(park.clone().multiplyScalar(1 - len));
+      h.knob.position.copy(at); h.tag.position.copy(at).add(new THREE.Vector3(0.1, 0.05, 0));
+      const pts = h.spoke.geometry.attributes.position.array; pts.set([0, 0, 0, v.x * 0.92, v.y * 0.92, v.z * 0.92]); h.spoke.geometry.attributes.position.needsUpdate = true;
+      const chosen = q === S.steerQ;
+      h.spoke.material.opacity = chosen ? 0.85 : 0.12 + 0.4 * len; h.spoke.material.color.set(chosen ? 0xff9f43 : 0xe6eaf3);
+      h.knob.material.color.setHSL(chosen ? 0.08 : 0.52, chosen ? 0.95 : len * 0.9, chosen ? 0.6 : 0.55 + 0.35 * (1 - len));
+      h.knob.scale.setScalar(chosen ? 1.6 : 1);
+      const text = `PC${d + 1} ${Math.round(len * 100)}%`;
+      if (h.label !== text) { h.tag.material.map = labelTexture(text, len > 0.5 ? "#e6eaf3" : "#8a93a8"); h.tag.material.needsUpdate = true; h.label = text; }
+    });
+  }
+  // the data's own center (the mean token) moves with your hand; this small cross marks it
+  const origin = new THREE.Group();
+  for (let a = 0; a < 3; a++) { const d = [0, 0, 0]; d[a] = 0.06; origin.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...d.map(x => -x)), new THREE.Vector3(...d)]), new THREE.LineBasicMaterial({ color: 0xe6eaf3 }))); }
+  cloud.add(origin);
+
+  // axis gizmo through the block's center (the data mean), labelled with what each axis shows
+  const axisColors = [0xff6b6b, 0x5ee08a, 0x6aa8ff];
+  const axisLabels = [];
+  for (let a = 0; a < 3; a++) {
+    const dir = [0, 0, 0]; dir[a] = 1;
+    const pts = [new THREE.Vector3(...dir.map(x => -x * 0.25)), new THREE.Vector3(...dir.map(x => x * 1.05))];
+    cloud.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: axisColors[a], transparent: true, opacity: 0.55 })));
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false }));
+    sprite.position.set(...dir.map(x => x * 1.2)); sprite.scale.set(0.3, 0.075, 1); cloud.add(sprite); axisLabels.push(sprite);
+  }
+  function labelTexture(text, color) {
+    const c = document.createElement("canvas"); c.width = 256; c.height = 64; const g = c.getContext("2d");
+    g.font = "600 34px IBM Plex Mono, Menlo, monospace"; g.fillStyle = color; g.textBaseline = "middle"; g.fillText(text, 6, 33);
+    const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter; return tex;
+  }
+
+  // points: per-point color, alpha (slice fade) and emphasis (hovered sentence)
+  const MAXN = 256;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(MAXN * 3), col = new Float32Array(MAXN * 3), alpha = new Float32Array(MAXN), emph = new Float32Array(MAXN);
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  geo.setAttribute("alpha", new THREE.BufferAttribute(alpha, 1));
+  geo.setAttribute("emph", new THREE.BufferAttribute(emph, 1));
+  const pointMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { uSize: { value: 0.022 }, uScale: { value: 400 } },
+    vertexShader: `attribute vec3 color; attribute float alpha; attribute float emph; varying vec3 vC; varying float vA;
+      uniform float uSize; uniform float uScale;
+      void main(){ vC = color; vA = alpha; vec4 mv = modelViewMatrix * vec4(position,1.0);
+        gl_PointSize = min(uSize * (1.0 + 1.2*emph) * uScale / -mv.z, 22.0 * (1.0 + emph)); gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `varying vec3 vC; varying float vA;
+      void main(){ vec2 d = gl_PointCoord - 0.5; float r = length(d); if (r > 0.5) discard;
+        float edge = smoothstep(0.5, 0.38, r); gl_FragColor = vec4(vC * (0.75 + 0.5*(0.5-r)), vA * edge); }`,
+  });
+  const points = new THREE.Points(geo, pointMat); cloud.add(points);
+  const ghostGeo = new THREE.BufferGeometry();
+  const gpos = new Float32Array(MAXN * 3), gcol = new Float32Array(MAXN * 3), galpha = new Float32Array(MAXN), gemph = new Float32Array(MAXN);
+  ghostGeo.setAttribute("position", new THREE.BufferAttribute(gpos, 3)); ghostGeo.setAttribute("color", new THREE.BufferAttribute(gcol, 3));
+  ghostGeo.setAttribute("alpha", new THREE.BufferAttribute(galpha, 1)); ghostGeo.setAttribute("emph", new THREE.BufferAttribute(gemph, 1));
+  const ghostMat = pointMat.clone(); ghostMat.uniforms = { uSize: { value: 0.011 }, uScale: pointMat.uniforms.uScale };
+  const ghosts = new THREE.Points(ghostGeo, ghostMat); cloud.add(ghosts);
+
+  // the hovered token's whole sentence, in order: how one sequence snakes through the space
+  const seqGeo = new THREE.BufferGeometry(); const seqPos = new Float32Array(128 * 3);
+  seqGeo.setAttribute("position", new THREE.BufferAttribute(seqPos, 3));
+  const seqLine = new THREE.LineSegments(seqGeo, new THREE.LineBasicMaterial({ color: 0xe6eaf3, transparent: true, opacity: 0.55 }));
+  seqLine.visible = false; cloud.add(seqLine);
+
+  // short motion trails while touring
+  const TRAIL = 6; const trailPos = new Float32Array(MAXN * TRAIL * 2 * 3), hist = [];
+  const trailGeo = new THREE.BufferGeometry(); trailGeo.setAttribute("position", new THREE.BufferAttribute(trailPos, 3));
+  const trails = new THREE.LineSegments(trailGeo, new THREE.LineBasicMaterial({ color: 0x8a93a8, transparent: true, opacity: 0.22 }));
+  trails.visible = false; cloud.add(trails);
+
+  // ---------- projection each frame ----------
+  let local = new Float32Array(MAXN * 3), base = new Float32Array(MAXN * 3), resid = new Float32Array(MAXN), inside = new Uint8Array(MAXN);
+  let fits = [], sd4 = [], viewShare = 0, lastHist = 0, B = null, dimsNow = [];
+  // window units: the window spans -1..1 on each axis (cube) or radius 1 (sphere)
+  const reach = (x, y, z) => S.shape === "cube" ? Math.max(Math.abs(x), Math.abs(y), Math.abs(z)) : Math.hypot(x, y, z);
+  // Frame the 3D view itself so the block fills its sphere (95% of tokens inside). Recomputed only when you
+  // change block, step or axes, never during the tour, so the cloud doesn't pulse while it rotates.
+  function refit() {
+    const { f, layers } = frame(), dims = viewDims(), Bt = basis(dims.length, S.t), C = f.C;
+    fits = layers.map(L => {
+      const r = new Float64Array(f.N);
+      for (let p = 0; p < f.N; p++) { let x = 0, y = 0, w = 0;
+        for (let q = 0; q < dims.length; q++) { const v = L.z[p * C + dims[q]]; x += Bt[0][q] * v; y += Bt[1][q] * v; w += Bt[2][q] * v; }
+        r[p] = Math.hypot(x, y, w); }
+      return 0.95 / 0.88 / Math.max(r.sort()[Math.floor(0.95 * (f.N - 1))], 1e-9);
+    });
+  }
+  // The dial's direction, minus whatever of it the window already shows: what depth slides along.
+  function dialVector(F, n) {
+    const u = new Float64Array(n); u[S.steerQ] = 1;
+    for (let b = 0; b < 3; b++) { const c = F[b][S.steerQ]; for (let i = 0; i < n; i++) u[i] -= c * F[b][i]; }
+    const nu = Math.hypot(...u); if (nu < 1e-4) return null;
+    for (let i = 0; i < n; i++) u[i] /= nu; return u;
+  }
+  let hid = new Float32Array(MAXN);
+  function project() {
+    const { f, layers } = frame(), L = layers[S.layer], C = f.C, N = f.N;
+    dimsNow = viewDims(); B = basis(dimsNow.length, S.t);
+    const k = 0.88 * fits[S.layer];
+    let sx = 0, sy = 0, sw = 0, sxx = 0, syy = 0, sww = 0, sh = 0, shh = 0;
+    const U = dialVector(B, dimsNow.length), rest = new Float32Array(N);
+    for (let p = 0; p < N; p++) {
+      let x = 0, y = 0, w = 0, h = 0, n2 = 0; const o = p * C;
+      for (let q = 0; q < dimsNow.length; q++) { const v = L.z[o + dimsNow[q]]; x += B[0][q] * v; y += B[1][q] * v; w += B[2][q] * v; if (U) h += U[q] * v; n2 += v * v; }
+      hid[p] = h; sh += h; shh += h * h;
+      rest[p] = Math.max(0, n2 - x * x - y * y - w * w - h * h);
+      base[p * 3] = x * k; base[p * 3 + 1] = y * k; base[p * 3 + 2] = w * k;
+      const lx = (x * k - S.center[0]) * S.dz, ly = (y * k - S.center[1]) * S.dz, lz = (w * k - S.center[2]) * S.dz;
+      local[p * 3] = lx; local[p * 3 + 1] = ly; local[p * 3 + 2] = lz;
+      inside[p] = reach(lx, ly, lz) <= 1 ? 1 : 0;
+      sx += x; sy += y; sw += w; sxx += x * x; syy += y * y; sww += w * w;
+    }
+    viewShare = ((sxx - sx * sx / N) + (syy - sy * sy / N) + (sww - sw * sw / N)) / N / L.total;
+    // distance from the slice: everything this view throws away, with the slice slid along the dial's direction
+    const mh = sh / N, sdh = Math.sqrt(Math.max(shh / N - mh * mh, 1e-12)), at = mh + S.depth * sdh;
+    for (let p = 0; p < N; p++) resid[p] = Math.sqrt(rest[p] + (hid[p] - at) ** 2);
+    // coverage: how much of each direction you have looked along, in this block
+    const seen = coverage(); for (let q = 0; q < dimsNow.length; q++) { const v = Math.hypot(B[0][q], B[1][q], B[2][q]); if (v > seen[dimsNow[q]]) seen[dimsNow[q]] = v; }
+  }
+  const seenBy = {};
+  function coverage() { const key = S.run + "@" + S.step + "/" + S.layer; return seenBy[key] ??= new Float64Array(frame().f.C); }
+  let medResid = 1;
+  function measureSlice() { const r = Array.from(resid.slice(0, frame().f.N)).sort((a, b) => a - b); medResid = r[r.length >> 1] || 1; }
+  function writePoints() {
+    const { f } = frame(), N = f.N, T = f.T, h = S.thick * medResid;
+    const hp = S.pinned ?? S.hover, seq = hp == null ? -1 : Math.floor(hp / T);
+    let shown = 0;
+    for (let p = 0; p < MAXN; p++) {
+      if (p >= N) { alpha[p] = 0; continue; }
+      pos[p * 3] = local[p * 3]; pos[p * 3 + 1] = local[p * 3 + 1]; pos[p * 3 + 2] = local[p * 3 + 2];
+      let a = S.mode === "slice" ? Math.max(Math.exp(-((resid[p] / h) ** 2)), 0.06) : 0.92;
+      if (seq >= 0 && Math.floor(p / T) !== seq) a *= 0.35;
+      const rch = reach(local[p * 3], local[p * 3 + 1], local[p * 3 + 2]);
+      const edgeFade = Math.min(1, Math.max(0, (1 - rch) / 0.04));   // clipped at the window, with a thin soft edge
+      alpha[p] = a * edgeFade; emph[p] = p === hp ? 1 : (Math.floor(p / T) === seq ? 0.35 : 0);
+      if (alpha[p] > 0.3 && a > 0.07) shown++;
+      const c = S.color === "char" && f.tokens ? CLASS_COLORS[charClass(charOf(f.tokens[p]))] : viridis((p % T) / Math.max(1, T - 1));
+      col[p * 3] = c[0]; col[p * 3 + 1] = c[1]; col[p * 3 + 2] = c[2];
+      // edge hint: a token just outside shows as a faint dot on the boundary, in its direction
+      const near = S.ghosts && rch > 1 && rch < 3 ? a * 0.45 * (1 - (rch - 1) / 2) : 0;
+      gpos[p * 3] = local[p * 3] / rch; gpos[p * 3 + 1] = local[p * 3 + 1] / rch; gpos[p * 3 + 2] = local[p * 3 + 2] / rch;
+      gcol.set(c, p * 3); galpha[p] = near; gemph[p] = 0;
+    }
+    for (const a of ["position", "color", "alpha", "emph"]) { geo.attributes[a].needsUpdate = true; ghostGeo.attributes[a].needsUpdate = true; }
+    geo.setDrawRange(0, N); ghostGeo.setDrawRange(0, N);
+    seqLine.visible = seq >= 0;
+    if (seq >= 0) {  // only the parts of the sequence inside the window
+      let o = 0;
+      for (let i = 0; i + 1 < T; i++) { const p = seq * T + i, q = p + 1;
+        if (!inside[p] || !inside[q]) continue;
+        seqPos.set([local[p * 3], local[p * 3 + 1], local[p * 3 + 2], local[q * 3], local[q * 3 + 1], local[q * 3 + 2]], o); o += 6; }
+      seqGeo.setDrawRange(0, o / 3); seqGeo.attributes.position.needsUpdate = true; }
+    const ox = -S.center[0] * S.dz, oy = -S.center[1] * S.dz, oz = -S.center[2] * S.dz;
+    origin.visible = reach(ox, oy, oz) <= 1; origin.position.set(ox, oy, oz);
+    return shown;
+  }
+  function writeTrails(now) {
+    trails.visible = S.playing;
+    if (!S.playing) { hist.length = 0; return; }
+    if (now - lastHist > 70) { hist.unshift(local.slice()); if (hist.length > TRAIL + 1) hist.pop(); lastHist = now; }
+    const N = frame().f.N; let o = 0;
+    for (let s = 0; s < hist.length - 1; s++) for (let p = 0; p < N; p++) {
+      if (!inside[p] || alpha[p] < 0.2) continue;
+      trailPos.set([hist[s][p * 3], hist[s][p * 3 + 1], hist[s][p * 3 + 2], hist[s + 1][p * 3], hist[s + 1][p * 3 + 1], hist[s + 1][p * 3 + 2]], o); o += 6;
+    }
+    trailGeo.setDrawRange(0, o / 3); trailGeo.attributes.position.needsUpdate = true;
+  }
+
+  // ---------- UI ----------
+  function buildRail() {
+    const { layers } = frame(); const rail = $("rail"); rail.innerHTML = "";
+    layers.forEach((L, i) => {
+      const b = document.createElement("button");
+      b.setAttribute("aria-current", i === S.layer ? "true" : "false");
+      b.title = `${L.name}: effective dimensionality ${L.dim}`;
+      b.innerHTML = `<span>${L.name}</span><span class="dimbar" style="width:${Math.max(3, Math.log(L.dim) / Math.log(64) * 46)}px;background:${L.dim < 3 ? "var(--warn)" : "var(--faint)"}"></span><span class="dimval ${L.dim < 3 ? "low" : ""}">${L.dim.toFixed(1)}</span>`;
+      b.onclick = () => { S.layer = i; S.pinned = null; refresh(); };
+      rail.appendChild(b);
+    });
+  }
+  function seg(el, items, current, onPick) {
+    el.innerHTML = "";
+    for (const [value, label] of items) { const b = document.createElement("button"); b.textContent = label;
+      b.setAttribute("aria-pressed", value === current ? "true" : "false"); b.onclick = () => onPick(value); el.appendChild(b); }
+  }
+  function buildAxes() {
+    const el = $("axes"); el.innerHTML = "";
+    ["X", "Y", "Z"].forEach((name, a) => {
+      const row = document.createElement("div"); row.className = "axis";
+      row.innerHTML = `<b style="color:var(--${name.toLowerCase()})">${name}</b><button aria-label="Previous direction for ${name}">‹</button><span class="name">PC${S.axes[a] + 1}</span><button aria-label="Next direction for ${name}">›</button>`;
+      const [prev, next] = row.querySelectorAll("button");
+      prev.onclick = () => stepAxis(a, -1); next.onclick = () => stepAxis(a, 1);
+      el.appendChild(row);
+    });
+  }
+  function stepAxis(a, delta) {
+    const C = frame().f.C; let d = S.axes[a];
+    do { d = (d + delta + C) % C; } while (S.axes.some((x, i) => i !== a && x === d));
+    S.axes[a] = d; setPlaying(false); S.t = 0; S.frame = null; refresh();
+  }
+  // Stopping the tour freezes the window where it is, so you can keep exploring from there by hand.
+  function setPlaying(on) {
+    if (!on && S.playing) { S.frame = basis(viewDims().length, S.t); S.t = 0; }
+    S.playing = on; $("tour-btn").textContent = on ? "Stop tour" : "Start tour";
+  }
+
+  // Manual tour (Cook & Buja): tilt a visible axis toward a principal direction. The tilt happens in the plane
+  // spanned by that axis and the hidden part of the direction, so the window stays orthonormal and the hidden
+  // direction swings into view: the shape changes, which pan and zoom never do.
+  function tilt(q, d) { const u = new Float64Array(viewDims().length); u[q] = 1; tiltToward(u, d); }
+  function tiltToward(target, d) {
+    if (S.playing) setPlaying(false);
+    const n = viewDims().length, F = basis(n, S.t).map(b => Float64Array.from(b));
+    for (let a = 0; a < 3; a++) {
+      const th = d[a] * 1.6; if (Math.abs(th) < 1e-7) continue;
+      const u = Float64Array.from(target);
+      for (let b = 0; b < 3; b++) { let c = 0; for (let i = 0; i < n; i++) c += u[i] * F[b][i]; for (let i = 0; i < n; i++) u[i] -= c * F[b][i]; }
+      const nu = Math.hypot(...u); if (nu < 1e-4) continue;
+      const c = Math.cos(th), sn = Math.sin(th);
+      for (let i = 0; i < n; i++) F[a][i] = c * F[a][i] + sn * u[i] / nu;
+    }
+    if (F[3]) {  // keep the hidden 4th vector (the depth direction) orthogonal to the visible three
+      for (let b = 0; b < 3; b++) { let dot = 0; for (let i = 0; i < n; i++) dot += F[3][i] * F[b][i]; for (let i = 0; i < n; i++) F[3][i] -= dot * F[b][i]; }
+      let nn = Math.hypot(...F[3]);
+      if (nn < 1e-3) { let j = 0, best = 9; for (let i = 0; i < n; i++) { const w = Math.hypot(F[0][i], F[1][i], F[2][i]); if (w < best) { best = w; j = i; } }
+        F[3].fill(0); F[3][j] = 1; for (let b = 0; b < 3; b++) { const c = F[b][j]; for (let i = 0; i < n; i++) F[3][i] -= c * F[b][i]; } nn = Math.hypot(...F[3]); }
+      for (let i = 0; i < n; i++) F[3][i] /= nn;
+    }
+    S.frame = F; S.t = 0;
+  }
+  // ---------- explore: computed views and smooth jumps ----------
+  // top-k eigenvectors of a symmetric C x C matrix (power iteration with deflation)
+  function topEigen(M, C, k) {
+    const out = [];
+    for (let e = 0; e < k; e++) {
+      let v = Float64Array.from({ length: C }, (_, i) => Math.sin(i * 1.7 + e * 3.1) + 0.01);
+      for (let it = 0; it < 200; it++) {
+        const w = new Float64Array(C);
+        for (let i = 0; i < C; i++) { let s = 0; for (let j = 0; j < C; j++) s += M[i * C + j] * v[j]; w[i] = s; }
+        for (const u of out) { let d = 0; for (let i = 0; i < C; i++) d += w[i] * u[i]; for (let i = 0; i < C; i++) w[i] -= d * u[i]; }
+        const n = Math.hypot(...w); if (n < 1e-12) break; for (let i = 0; i < C; i++) v[i] = w[i] / n;
+      }
+      out.push(v);
+    }
+    return out;
+  }
+  function scatter(rows, C) {  // covariance of a list of C-vectors
+    const M = new Float64Array(C * C), mean = new Float64Array(C);
+    for (const r of rows) for (let i = 0; i < C; i++) mean[i] += r[i] / rows.length;
+    for (const r of rows) for (let i = 0; i < C; i++) { const a = r[i] - mean[i]; for (let j = 0; j < C; j++) M[i * C + j] += a * (r[j] - mean[j]); }
+    return M;
+  }
+  const rowOf = (L, p, C) => L.z.subarray(p * C, p * C + C);
+  // The three directions (in PC coordinates) for each computed view.
+  function targetDirections(kind) {
+    const { f, layers } = frame(), C = f.C, L = layers[S.layer], seen = coverage();
+    // this block's own most spread-out view (the PCs are shared by all blocks, so PC1-3 need not be it)
+    if (kind === "spread") return topEigen(scatter([...Array(f.N).keys()].map(p => rowOf(L, p, C)), C), C, 3);
+    if (kind === "unseen") {  // the most spread-out directions you have looked along least
+      const order = [...Array(C).keys()].sort((a, b) => L.v[b] * (1 - seen[b] ** 2) - L.v[a] * (1 - seen[a] ** 2));
+      return order.slice(0, 3).map(d => Float64Array.from({ length: C }, (_, i) => i === d ? 1 : 0));
+    }
+    if (kind === "chars") {  // where the five character types sit furthest apart (between-class scatter)
+      const groups = [[], [], [], [], []];
+      for (let p = 0; p < f.N; p++) groups[charClass(charOf(f.tokens[p]))].push(rowOf(L, p, C));
+      const means = groups.filter(g => g.length).map(g => { const m = new Float64Array(C); for (const r of g) for (let i = 0; i < C; i++) m[i] += r[i] / g.length; return [m, g.length]; });
+      const all = new Float64Array(C); for (const [m, n] of means) for (let i = 0; i < C; i++) all[i] += m[i] * n / f.N;
+      const M = new Float64Array(C * C);
+      for (const [m, n] of means) for (let i = 0; i < C; i++) for (let j = 0; j < C; j++) M[i * C + j] += n * (m[i] - all[i]) * (m[j] - all[j]);
+      return topEigen(M, C, 3);
+    }
+    if (kind === "change") {  // where tokens moved most between the previous block and this one
+      const prev = layers[S.layer - 1];
+      const rows = [...Array(f.N).keys()].map(p => Float64Array.from({ length: C }, (_, i) => L.z[p * C + i] - prev.z[p * C + i]));
+      return topEigen(scatter(rows, C), C, 3);
+    }
+  }
+  // Glide the window to show the given directions on X, Y, Z (PC coordinates), then hand control back.
+  let glide = null;
+  function jump(kind, label) {
+    if (kind === "change" && S.layer === 0) { $("jump-note").textContent = "The embeddings have no previous block to compare with."; return; }
+    if (S.playing) setPlaying(false);
+    const dims = viewDims(), n = dims.length, from = basis(n, S.t).slice(0, 3).map(b => Float64Array.from(b));
+    const to = targetDirections(kind).map(t => Float64Array.from(dims, d => t[d]));
+    to.forEach((t, a) => { let d = 0; for (let i = 0; i < n; i++) d += t[i] * from[a][i]; if (d < 0) for (let i = 0; i < n; i++) t[i] = -t[i]; });  // shortest way round
+    glide = { from, to, t0: performance.now(), dur: 1600 };
+    $("jump-note").textContent = label;
+  }
+  function stepGlide(now) {
+    if (!glide) return;
+    const u = Math.min(1, (now - glide.t0) / glide.dur), s = u * u * (3 - 2 * u), n = glide.from[0].length;
+    const F = glide.from.map((f, a) => Float64Array.from(f, (x, i) => x * (1 - s) + glide.to[a][i] * s));
+    for (let a = 0; a < 3; a++) {  // keep the window orthonormal along the way
+      for (let b = 0; b < a; b++) { let d = 0; for (let i = 0; i < n; i++) d += F[a][i] * F[b][i]; for (let i = 0; i < n; i++) F[a][i] -= d * F[b][i]; }
+      const nn = Math.hypot(...F[a]) || 1; for (let i = 0; i < n; i++) F[a][i] /= nn;
+    }
+    S.frame = F; S.t = 0;
+    if (u >= 1) { glide = null; refit(); }
+  }
+  const cv = () => $("cover"), cg = () => cv().getContext("2d");
+  function drawCoverage() {
+    const { f, layers } = frame(), C = f.C, L = layers[S.layer], seen = coverage(), g = cg(), W = cv().width, H = cv().height, w = W / C;
+    g.clearRect(0, 0, W, H);
+    const vmax = Math.max(...L.v);
+    let explored = 0, looked = 0;
+    for (let d = 0; d < C; d++) {
+      explored += L.v[d] * seen[d] ** 2; if (seen[d] > 0.7) looked++;
+      const h = Math.max(3, Math.sqrt(L.v[d] / vmax) * (H - 8));  // bar height: how much spread that direction carries
+      g.fillStyle = "rgba(148,163,196,.18)"; g.fillRect(d * w + 1, H - h, w - 2, h);
+      g.fillStyle = `rgba(34,211,238,${0.15 + 0.85 * seen[d]})`; g.fillRect(d * w + 1, H - h * seen[d] ** 2, w - 2, h * seen[d] ** 2);
+      if (d === dimsNow[S.steerQ]) { g.fillStyle = "#ff9f43"; g.fillRect(d * w + 1, 0, w - 2, 5); }
+    }
+    $("cover-note").textContent = `You've looked along ${looked} of ${C} directions, covering ${Math.round(100 * explored / L.total)}% of this block's spread. Bars: PC1 → PC${C}, height = spread, cyan = how much you've seen. Orange: the dial.`;
+  }
+
+  // What a token is hiding: the part of its vector this window throws away. Tilting toward it brings the token closer.
+  function hiddenOf(p) {
+    const { f, layers } = frame(), L = layers[S.layer], dims = viewDims(), F = basis(dims.length, S.t);
+    const u = Float64Array.from(dims, d => L.z[p * f.C + d]);
+    for (let b = 0; b < 3; b++) { let c = 0; for (let i = 0; i < u.length; i++) c += u[i] * F[b][i]; for (let i = 0; i < u.length; i++) u[i] -= c * F[b][i]; }
+    return u;
+  }
+  // The steering dial: hidden (or partly hidden) directions, in PC order.
+  function steerChoices() {
+    const dims = viewDims(), F = basis(dims.length, S.t);
+    return dims.map((d, q) => ({ d, q, seen: Math.hypot(F[0][q], F[1][q], F[2][q]) })).filter(c => c.seen < 0.97).sort((a, b) => a.d - b.d);
+  }
+  function stepSteer(delta) {
+    const c = steerChoices(); if (!c.length) return;
+    const i = c.findIndex(x => x.q === S.steerQ);
+    S.steerQ = c[((i < 0 ? 0 : i + delta) % c.length + c.length) % c.length].q;
+  }
+  function refresh() {
+    const { f, layers } = frame(), L = layers[S.layer];
+    refit(); project(); measureSlice();
+    buildRail(); buildAxes();
+    seg($("run-seg"), Object.entries(D.runs).map(([k, r]) => [k, r.title]), S.run, v => { S.run = v; S.pinned = null; refresh(); });
+    seg($("step-seg"), Object.keys(D.runs[S.run].frames).map(s => [s, "step " + s]), S.step, v => { S.step = v; S.pinned = null; refresh(); });
+    $("t-block").firstChild.textContent = L.name;
+    $("t-run").textContent = `${D.runs[S.run].title} · step ${f.step} · ${f.N} tokens × ${f.C} dims`;
+    $("thick-wrap").hidden = S.mode !== "slice";
+    $("mode-proj").setAttribute("aria-pressed", S.mode === "projection"); $("mode-slice").setAttribute("aria-pressed", S.mode === "slice");
+    $("color-pos").setAttribute("aria-pressed", S.color === "position"); $("color-char").setAttribute("aria-pressed", S.color === "char");
+    $("legend").innerHTML = S.color === "char"
+      ? CLASS_NAMES.map((n, i) => `<span style="color:rgb(${CLASS_COLORS[i].map(x => Math.round(x * 255))})">●</span> ${n}`).join(" &nbsp;")
+      : `<span style="color:rgb(68,1,84)">●</span> first character of a sequence → <span style="color:rgb(253,231,37)">●</span> last (position 0 → ${f.T - 1})`;
+    $("toured-val").textContent = S.toured; $("toured").max = f.C;
+  }
+  $("mode-proj").onclick = () => { S.mode = "projection"; refresh(); };
+  $("mode-slice").onclick = () => { S.mode = "slice"; refresh(); };
+  $("color-pos").onclick = () => { S.color = "position"; refresh(); };
+  $("color-char").onclick = () => { S.color = "char"; refresh(); };
+  $("thick").oninput = e => { S.thick = +e.target.value; };
+  $("tour-btn").onclick = () => setPlaying(!S.playing);
+  $("axes-btn").onclick = () => { setPlaying(false); S.t = 0; S.frame = null; refresh(); };
+  $("speed").oninput = e => { S.speed = +e.target.value; $("speed-val").textContent = S.speed.toFixed(1) + "×"; };
+  $("toured").oninput = e => { setPlaying(false); S.toured = +e.target.value; refresh(); };  // only changes what the tour roams
+  $("zoom").oninput = e => { S.zoom = +e.target.value; };
+  $("dz").oninput = e => { S.dz = 2 ** +e.target.value; };
+  $("depth").oninput = e => { S.depth = +e.target.value; };
+  $("reset-data").onclick = () => { S.center = [0, 0, 0]; S.depth = 0; $("depth").value = 0; setDataZoom(1); };
+  $("ghosts").onchange = e => { S.ghosts = e.target.checked; };
+  const pick = (ids, key, value) => { S[key] = value; ids.forEach(([id, v]) => $(id).setAttribute("aria-pressed", v === value)); };
+  const dragModes = [["drag-look", "look"], ["drag-data", "data"], ["drag-steer", "steer"]];
+  $("drag-look").onclick = () => pick(dragModes, "drag", "look");
+  $("drag-data").onclick = () => pick(dragModes, "drag", "data");
+  $("drag-steer").onclick = () => pick(dragModes, "drag", "steer");
+  $("steer-prev").onclick = () => stepSteer(-1);
+  $("jump-unseen").onclick = () => jump("unseen", "Gliding to the most spread-out directions you haven't looked along yet.");
+  $("jump-spread").onclick = () => jump("spread", "This block's own three most spread-out directions (PCs are shared by all blocks, so they can differ from PC1-3).");
+  $("jump-chars").onclick = () => jump("chars", "The view where vowels, consonants, capitals, spaces and punctuation sit furthest apart.");
+  $("jump-change").onclick = () => jump("change", "The directions along which tokens moved most since the previous block.");
+  $("steer-next").onclick = () => stepSteer(1);
+  $("shape-cube").onclick = () => pick([["shape-cube", "cube"], ["shape-sphere", "sphere"]], "shape", "cube");
+  $("shape-sphere").onclick = () => pick([["shape-cube", "cube"], ["shape-sphere", "sphere"]], "shape", "sphere");
+  $("walk-in").onclick = () => { camera.position.set(CENTER.x, CENTER.y + 0.1, CENTER.z + 0.05); yaw = 0; pitch = 0; };
+  $("step-back").onclick = () => { camera.position.copy(HOME); yaw = 0; pitch = -0.04; };
+
+  function updateHud(shown) {
+    const { f, layers } = frame(), L = layers[S.layer];
+    const toured = Math.round(100 * dimsNow.slice(0, S.toured).reduce((a, d) => a + L.v[d], 0) / L.total);
+    $("t-chips").innerHTML = [
+      `<span class="chip ${L.dim < 3 ? "warn" : ""}" title="Effective dimensionality: how many directions the cloud really uses">dim ${L.dim.toFixed(1)}</span>`,
+      `<span class="chip accent" title="Share of the block's spread visible in this 3D view">view shows ${Math.round(100 * viewShare)}%</span>`,
+      `<span class="chip" title="Share of the block's spread inside the directions the tour roams">tour covers ${toured}%</span>`,
+      `<span class="chip">${shown} of ${f.N} tokens in the window</span>`,
+      `<span class="chip">zoom ${S.dz.toFixed(1)}×</span>`,
+      S.playing ? `<span class="chip accent">touring</span>` : `<span class="chip">still</span>`,
+    ].join("");
+    // which principal directions each display axis is made of right now
+    const top = Math.min(12, dimsNow.length);
+    const order = dimsNow.map((d, q) => [d, q]).sort((a, b) => a[0] - b[0]).slice(0, top);
+    $("mix").innerHTML = ["X", "Y", "Z"].map((n, a) =>
+      `<div class="mixrow"><b class="mono" style="color:var(--${n.toLowerCase()})">${n}</b><div class="bars">${order.map(([d, q]) => `<i title="PC${d + 1}: ${B[a][q].toFixed(2)}" style="height:${Math.max(1, Math.abs(B[a][q]) * 16)}px;background:${Math.abs(B[a][q]) > 0.5 ? `var(--${n.toLowerCase()})` : "var(--faint)"}"></i>`).join("")}</div></div>`).join("");
+    const dom = ["X", "Y", "Z"].map((n, a) => { let best = 0; for (let q = 1; q < dimsNow.length; q++) if (Math.abs(B[a][q]) > Math.abs(B[a][best])) best = q; return `${n} ≈ ${Math.abs(B[a][best]) > 0.9 ? "" : "mostly "}PC${dimsNow[best] + 1}`; });
+    const nd = dimsNow.length;
+    const choice = steerChoices().find(c => c.q === S.steerQ) ?? steerChoices()[0];
+    if (choice && choice.q !== S.steerQ) S.steerQ = choice.q;
+    $("steer-name").textContent = choice ? `PC${choice.d + 1}` : "—";
+    $("steer-seen").textContent = choice ? `${Math.round(choice.seen * 100)}% in view` : "all toured directions are in view";
+    const hud = $("steer-hud"), st = S.steering;
+    hud.hidden = !st;
+    if (st) hud.textContent = st.token != null
+      ? `Revealing what “${show(charOf(frame().f.tokens[st.token]))}” hides: ${Math.round(resid[st.token] * 100) / 100} outside the window`
+      : `Steering toward PC${dimsNow[st.q] + 1} · ${Math.round(100 * Math.hypot(B[0][st.q], B[1][st.q], B[2][st.q]))}% in view`;
+    $("mix-note").textContent = `${dom.join(" · ")}. You can tilt this window ${3 * (nd - 3)} ways: each of X, Y, Z toward any of the ${nd - 3} directions it isn't showing.`;
+    $("mode-note").textContent = S.mode === "slice"
+      ? "Only tokens close to this 3D slice of the 64-dim space are shown. Slide the depth, change axes or tour, and tokens enter and leave."
+      : "Every token is flattened onto these three directions; the window clips whatever falls outside it.";
+    $("zoom-val").textContent = (2 * R * S.zoom).toFixed(1) + " m";
+    $("dz-val").textContent = S.dz.toFixed(1) + "×";
+    $("depth-wrap").hidden = S.mode !== "slice";
+    $("depth-dir").textContent = `PC${dimsNow[S.steerQ] + 1} (the dial) · ${S.depth >= 0 ? "+" : "−"}${Math.abs(S.depth).toFixed(1)}σ`;
+    drawCoverage();
+    cubeShell.visible = footCube.visible = S.shape === "cube"; sphereShell.visible = footSphere.visible = S.shape === "sphere";
+    for (let a = 0; a < 3; a++) axisLabels[a].userData.text !== dom[a] && (axisLabels[a].material.map = labelTexture(dom[a].replace("≈ ", "").replace("mostly ", "~"), ["#ff6b6b", "#5ee08a", "#6aa8ff"][a]), axisLabels[a].material.needsUpdate = true, axisLabels[a].userData.text = dom[a]);
+  }
+
+  // where you are: your position in this block's coordinates, the nearest token, inside or outside
+  function updateWhere() {
+    const { f } = frame(), k = 0.88 * fits[S.layer], s = R * S.zoom;
+    const rel = camera.position.clone().sub(CENTER).divideScalar(s);
+    const inWin = reach(rel.x, rel.y, rel.z) < 1;
+    let best = -1, bd = 1e9;
+    for (let p = 0; p < f.N; p++) { if (S.mode === "slice" && alpha[p] < 0.3) continue;
+      if (alpha[p] < 0.3) continue;
+      const dx = local[p * 3] - rel.x, dy = local[p * 3 + 1] - rel.y, dz = local[p * 3 + 2] - rel.z, d = dx * dx + dy * dy + dz * dz;
+      if (d < bd) { bd = d; best = p; } }
+    const fmt = v => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2);
+    const c = S.center.map(v => v / k);
+    $("where").innerHTML = `Window centered at <b>X ${fmt(c[0])} · Y ${fmt(c[1])} · Z ${fmt(c[2])}</b>, zoom <b>${S.dz.toFixed(1)}×</b><br>` +
+      `${inWin ? "You are <b>inside the window</b>" : `You are <b>${Math.max(0, rel.length() * s - s).toFixed(1)} m from the window</b>`}<br>` +
+      (best >= 0 ? `Nearest token: <b>${show(charOf(f.tokens[best]))}</b> (${(Math.sqrt(bd) * s).toFixed(2)} m)` : "");
+  }
+
+  const mm = $("minimap"), mg = mm.getContext("2d");
+  function drawMap() {
+    const W = mm.width, H = mm.height, N = frame().f.N;
+    let ext = 1; for (let p = 0; p < N; p++) ext = Math.max(ext, Math.abs(base[p * 3]), Math.abs(base[p * 3 + 1]));
+    const half = 1 / S.dz;  // window half-size in data units
+    ext = Math.max(ext, Math.abs(S.center[0]) + half, Math.abs(S.center[1]) + half) * 1.08;
+    const sc = Math.min(W, H) / 2 / ext, cx = W / 2, cy = H / 2;
+    mg.clearRect(0, 0, W, H);
+    mg.strokeStyle = "rgba(148,163,196,.14)"; mg.lineWidth = 1;
+    mg.beginPath(); mg.moveTo(0, cy); mg.lineTo(W, cy); mg.moveTo(cx, 0); mg.lineTo(cx, H); mg.stroke();
+    for (let p = 0; p < N; p++) {
+      const a = inside[p] && alpha[p] > 0.2 ? 0.95 : 0.22;
+      mg.fillStyle = `rgba(${col[p * 3] * 255 | 0},${col[p * 3 + 1] * 255 | 0},${col[p * 3 + 2] * 255 | 0},${a})`;
+      mg.fillRect(cx + base[p * 3] * sc - 1.5, cy - base[p * 3 + 1] * sc - 1.5, 3, 3);
+    }
+    mg.strokeStyle = "rgba(34,211,238,.95)"; mg.lineWidth = 2.5;
+    const wx = cx + S.center[0] * sc, wy = cy - S.center[1] * sc, wr = half * sc;
+    mg.beginPath(); if (S.shape === "cube") mg.rect(wx - wr, wy - wr, 2 * wr, 2 * wr); else mg.arc(wx, wy, wr, 0, 7); mg.stroke();
+    mg.fillStyle = "rgba(34,211,238,.95)"; mg.font = "600 20px IBM Plex Mono, monospace"; mg.fillText("window", wx - wr, wy - wr - 8);
+    mg.fillStyle = "rgba(138,147,168,.9)"; mg.font = "500 18px IBM Plex Mono, monospace"; mg.fillText("X →", W - 52, cy - 8); mg.fillText("Y ↑", cx + 6, 20);
+  }
+
+  function showToken() {
+    const { f } = frame(), p = S.pinned ?? S.hover, card = $("token");
+    if (p == null || !f.tokens) { card.hidden = true; return; }
+    const T = f.T, s0 = Math.floor(p / T) * T, ctx = f.tokens.slice(s0, s0 + T).map(charOf);
+    const i = p - s0, k = 0.88 * fits[S.layer];
+    $("tok-title").textContent = `${S.pinned != null ? "Pinned token" : "Token"} · sequence ${Math.floor(p / T) + 1}, position ${i}`;
+    $("tok-ctx").innerHTML = ctx.map((c, j) => { const t = show(c).replace(/&/g, "&amp;").replace(/</g, "&lt;"); return j === i ? `<mark>${t}</mark>` : t; }).join("");
+    const fmt = v => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2);
+    $("tok-meta").textContent = `“${show(ctx[i])}” at X ${fmt(local[p * 3] / k)} · Y ${fmt(local[p * 3 + 1] / k)} · Z ${fmt(local[p * 3 + 2] / k)} · ${resid[p].toFixed(2)} outside the window. The line traces its whole sequence.`;
+    card.hidden = false;
+  }
+
+  // ---------- input: walk, look, resize, hover/pin ----------
+  const keys = new Set();
+  addEventListener("keydown", e => { if (e.target.tagName === "INPUT") return; keys.add(e.key.toLowerCase()); });
+  addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
+  let drag = null, moved = 0; const pointers = new Map(); let pinch = null;
+  canvas.addEventListener("contextmenu", e => e.preventDefault());
+  canvas.addEventListener("pointerdown", e => { try { canvas.setPointerCapture(e.pointerId); } catch {} pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: S.dz }; }
+    const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const hit = ray.intersectObjects(handles.filter(h => h.knob.visible).map(h => h.knob))[0];
+    const steer = e.shiftKey || S.drag === "steer";
+    drag = { x: e.clientX, y: e.clientY, grab: e.button === 2 || S.drag === "data", handle: hit ? handles[hit.object.userData.handle].q : null,
+             steer, token: steer && !hit ? pickToken(e.clientX, e.clientY) : null };
+    if (steer && !hit) S.steering = drag.token != null ? { token: drag.token } : { q: S.steerQ };
+    moved = 0; canvas.classList.add("dragging"); });
+  canvas.addEventListener("pointermove", e => {
+    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pinch && pointers.size === 2) { const [a, b] = [...pointers.values()]; setDataZoom(pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d); return; }
+    if (drag) { const dx = e.clientX - drag.x, dy = e.clientY - drag.y; moved += Math.abs(dx) + Math.abs(dy);
+      if (drag.handle != null) tilt(drag.handle, screenToWindow(dx, dy, 1));
+      else if (drag.steer) {
+        const d = screenToWindow(dx, dy, 1);
+        if (drag.token != null) tiltToward(hiddenOf(drag.token), d); else tilt(S.steerQ, d);
+      }
+      else if (drag.grab) grabData(dx, dy);
+      else { yaw -= dx * 0.004; pitch = Math.max(-1.4, Math.min(1.4, pitch - dy * 0.004)); }
+      drag = { ...drag, x: e.clientX, y: e.clientY }; return; }
+    hoverAt(e.clientX, e.clientY);
+  });
+  const end = e => { pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null;
+    if (drag && moved < 4) { hoverAt(e.clientX, e.clientY); S.pinned = S.hover === S.pinned ? null : S.hover; }
+    drag = null; S.steering = null; canvas.classList.remove("dragging"); };
+  canvas.addEventListener("pointerup", end); canvas.addEventListener("pointercancel", end);
+  let dialAt = 0;
+  canvas.addEventListener("wheel", e => {
+    e.preventDefault();
+    const dy = e.deltaY || e.deltaX;  // Shift+scroll often arrives as horizontal scroll
+    if (e.shiftKey) { const now = performance.now(); if (now - dialAt > 140) { stepSteer(dy > 0 ? 1 : -1); dialAt = now; } }
+    else if (e.altKey) { S.depth = Math.max(-3, Math.min(3, S.depth - dy * 0.004)); $("depth").value = S.depth; if (S.mode !== "slice") { S.mode = "slice"; refresh(); } }
+    else setDataZoom(S.dz * Math.exp(-dy * 0.0015));
+  }, { passive: false });
+  // a token under the pointer, including the faint ones off the slice and the hints on the boundary
+  function pickToken(x, y) {
+    const r = canvas.getBoundingClientRect(); ndc.set((x - r.left) / r.width * 2 - 1, -(y - r.top) / r.height * 2 + 1);
+    ray.setFromCamera(ndc, camera); ray.params.Points.threshold = 0.04;
+    const hits = [...ray.intersectObject(points).filter(h => alpha[h.index] > 0.03), ...ray.intersectObject(ghosts).filter(h => galpha[h.index] > 0.03)]
+      .sort((a, b) => a.distanceToRay - b.distanceToRay);
+    return hits.length ? hits[0].index : null;
+  }
+  function setDataZoom(z) { S.dz = Math.min(20, Math.max(0.3, z)); $("dz").value = Math.log2(S.dz); }
+  // Grab: the data follows your hand across the window, at the window's distance from you.
+  function screenToWindow(dx, dy, dataZoom) {  // a hand movement in the room, in window units
+    const d = Math.max(0.5, camera.position.distanceTo(CENTER)), perPx = 2 * d * Math.tan(camera.fov * Math.PI / 360) / canvas.clientHeight;
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion), up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+    const m = right.multiplyScalar(dx * perPx).add(up.multiplyScalar(-dy * perPx)).divideScalar(R * S.zoom * dataZoom);
+    return [m.x, m.y, m.z];
+  }
+  function grabData(dx, dy) {
+    const m = screenToWindow(dx, dy, S.dz);
+    S.center[0] -= m[0]; S.center[1] -= m[1]; S.center[2] -= m[2];
+  }
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  function hoverAt(x, y) {
+    const r = canvas.getBoundingClientRect(); ndc.set((x - r.left) / r.width * 2 - 1, -(y - r.top) / r.height * 2 + 1);
+    ray.setFromCamera(ndc, camera); ray.params.Points.threshold = 0.03;
+    const hits = ray.intersectObject(points).filter(h => alpha[h.index] > 0.25).sort((a, b) => a.distanceToRay - b.distanceToRay || a.distance - b.distance);
+    S.hover = hits.length ? hits[0].index : null;
+  }
+
+  function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    pointMat.uniforms.uScale.value = h * renderer.getPixelRatio() / (2 * Math.tan(camera.fov * Math.PI / 360)); }
+  addEventListener("resize", resize);
+
+  let last = performance.now(), hudAt = 0;
+  function tick(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    // walk in the direction you're facing
+    const sp = (keys.has("shift") ? 3.2 : 1.4) * dt, fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)), right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    if (keys.has("w") || keys.has("arrowup")) camera.position.addScaledVector(fwd, sp);
+    if (keys.has("s") || keys.has("arrowdown")) camera.position.addScaledVector(fwd, -sp);
+    if (keys.has("a") || keys.has("arrowleft")) camera.position.addScaledVector(right, -sp);
+    if (keys.has("d") || keys.has("arrowright")) camera.position.addScaledVector(right, sp);
+    if (keys.has("e")) camera.position.y += sp; if (keys.has("q")) camera.position.y = Math.max(0.2, camera.position.y - sp);
+    camera.rotation.set(pitch, yaw, 0, "YXZ");
+    if (S.playing) S.t += dt * S.speed;
+    stepGlide(now);
+    project();
+    cloud.scale.setScalar(R * S.zoom);
+    foot.scale.setScalar(R * S.zoom); foot.position.x = CENTER.x; foot.position.z = CENTER.z;
+    CENTER.y = Math.max(1.5, R * S.zoom + 0.05); cloud.position.y = CENTER.y;  // a big window stands on the floor
+    const shown = writePoints(); writeTrails(now); updateHandles();
+    if (now - hudAt > 120) { updateHud(shown); updateWhere(); showToken(); drawMap(); hudAt = now; }
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  resize(); refresh(); requestAnimationFrame(tick);
+})();
+</script>
